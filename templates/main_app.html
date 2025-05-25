@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h2>{{ title }}</h2>
+    {% if current_user.is_authenticated %}
+        <p>歡迎, <strong>{{ current_user.name or '使用者' }}</strong>!</p> {# Default to '使用者' if name is None #}
+        <p>Email: {{ current_user.email or '未提供' }}</p>
+        <p>FHIR User URL: {{ current_user.fhir_user_url or '未提供' }}</p>
+        
+        {% if session.patient_id %}
+            <p>目前病患 ID: <strong>{{ session.patient_id }}</strong></p>
+            <p>病患姓名: <strong>{{ patient_name_display or '未提供' }}</strong></p> {# Use the new patient_name_display variable #}
+            
+            {% if patient_data and patient_data.id %}
+                <h4>病患資訊 (範例 FHIR Resource):</h4>
+                <pre>{{ patient_data | tojson(indent=2) }}</pre>
+            {% elif patient_data %}
+                 <h4>病患資訊 (範例):</h4>
+                 <pre>{{ patient_data | tojson(indent=2) }}</pre>
+            {% endif %}
+            <a href="{{ url_for('calculate_risk_ui_page') }}" class="btn btn-info mt-2">計算此病患的出血風險</a>
+            {% if session.get('fhir_server_url') %}
+                <a href="https://launch.smarthealthit.org/launcher?iss={{ session.get('fhir_server_url') }}" class="btn btn-secondary mt-2 ml-2">返回EHR選擇其他病患</a>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">目前沒有選定的病患情境。</div>
+        {% endif %}
+        
+        <p class="mt-3">Access Token: <small>{{ session.access_token[:30] }}...</small> (僅顯示前30字元)</p>
+        <p>FHIR Server URL: {{ session.fhir_server_url }}</p>
+        <p>Granted Scopes: {{ session.scopes_granted }}</p>
+
+        <h4>ID Token Claims (部分):</h4>
+        <pre style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+        ID: {{ session.get('id_token_claims', {}).get('sub') }}
+        Name: {{ session.get('id_token_claims', {}).get('name', session.get('id_token_claims', {}).get('profile_name'))}}
+        Email: {{ session.get('id_token_claims', {}).get('email') }}
+        fhirUser: {{ session.get('id_token_claims', {}).get('fhirUser', session.get('id_token_claims', {}).get('profile')) }}
+        Exp: {{ human_readable_time(session.get('id_token_claims', {}).get('exp')) }}
+        </pre>
+        
+    {% else %}
+        <p>請登入以查看此頁面。</p>
+    {% endif %}
+
+    <!-- 您的應用程式主要內容將會放在這裡 -->
+    <!-- 例如，如果這是一個UI應用程式，可以在這裡呼叫計算邏輯 -->
+
+{% endblock %}
+
+{% macro human_readable_time(timestamp) -%}
+    {{ datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S') if timestamp else 'N/A' }}
+{%- endmacro %}

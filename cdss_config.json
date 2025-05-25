@@ -1,0 +1,127 @@
+{
+    "version": "1.0.0",
+    "guideline_source": "Based on ARC-HBR components and general risk factors",
+    "medication_codings": {
+      "oac": [
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "1114195"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "1364428"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "313992"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "848937"]
+      ],
+      "nsaid_steroid": [
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "2878"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "3264"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "6902"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "8638"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "6813"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "19737"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "140587"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "3355"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "3393"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "24605"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "4331"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "4502"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "5640"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "5781"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "6142"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "35827"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "257844"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "41493"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "7258"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "298665"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "32613"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "8356"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "10237"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "10636"],
+        ["http://www.nlm.nih.gov/research/umls/rxnorm", "31448"]
+      ]
+    },
+    "procedure_codings": {
+        "blood_transfusion": [
+            ["http://snomed.info/sct", "116859006"],
+            ["http://snomed.info/sct", "71493000"],
+            ["http://snomed.info/sct", "12719002"],
+            ["http://snomed.info/sct", "13569004"]
+        ]
+    },
+    "condition_rules": {
+      "codes_score_2": [
+        ["http://hl7.org/fhir/sid/icd-10-cm", "Q280"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "Q282"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K766"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K7881"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K7469"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K250"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K254"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K260"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K264"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K270"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K280"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K284"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K5521"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K8501"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K2901"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K7031"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K7460"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K745"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K744"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K743"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K717"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K7030"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "I8501"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "I8510"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "I8511"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K2081"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K2091"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K2101"],
+        ["http://hl7.org/fhir/sid/icd-10-cm", "K2211"],
+        ["http://snomed.info/sct", "19943007"],
+        ["http://snomed.info/sct", "34742003"],
+        ["http://snomed.info/sct", "64779008"],
+        ["http://snomed.info/sct", "131148009"],
+        ["http://snomed.info/sct", "116859006"]
+      ],
+      "prefix_rules": [
+          {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "I61"], "score": 2, "conditions": null},
+          {"prefix": ["http://snomed.info/sct", "1386000"], "score": 2, "conditions": null},
+          {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "C"], "score": 2, "conditions": {"status": "active", "max_months_ago": 12}},
+          {"prefix": ["http://snomed.info/sct", "363346000"], "score": 2, "conditions": {"status": "active", "max_months_ago": 12}},
+          {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "I63"], "score": 2, "conditions": {"max_months_ago": 6}},
+          {"prefix": ["http://snomed.info/sct", "422504002"], "score": 2, "conditions": {"max_months_ago": 6}},
+          {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "I63"], "score": 1, "conditions": {"min_months_ago": 6, "max_months_ago": 12}},
+          {"prefix": ["http://snomed.info/sct", "422504002"], "score": 1, "conditions": {"min_months_ago": 6, "max_months_ago": 12}}
+      ],
+      "text_keywords_score_2": [
+        "with bleeding",
+        "bleeding",
+        "with hemorrhage",
+        "cirrhosis",
+        "malignant neoplasm",
+        "carcinoma",
+        "cancer"
+      ]
+    },
+    "risk_score_parameters": {
+      "age_gte_75_params": { "threshold": 75, "score": 1 },
+
+      "egfr_lt_15_params": { "threshold": 15, "score": 2 },
+      "egfr_lt_30_params": { "threshold": 30, "score": 2 },
+      "egfr_lt_45_params": { "threshold": 45, "score": 1 },
+
+      "hgb_male_lt_13_params": { "threshold": 13, "score": 1 },
+      "hgb_female_lt_12_params": { "threshold": 12, "score": 1 },
+
+      "plt_lt_100_params": { "threshold": 100, "score": 2 },
+
+      "medication": {
+           "oac_score": 2,
+           "nsaid_steroid_score": 1
+      },
+      "condition_score_max": 2
+    },
+     "final_risk_threshold": {
+          "high_risk_min_score": 2,
+          "high_risk_label": "高出血風險",
+          "low_risk_label": "未搜尋到高出血風險相關因子"
+     }
+  }

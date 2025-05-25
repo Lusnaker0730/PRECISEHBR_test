@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="starter-template">
+        <h1>{{ title }}</h1>
+        <p class="lead">歡迎使用此 SMART on FHIR 應用程式。<br>
+            請透過您的電子病歷 (EHR) 系統啟動此應用程式以進行病患相關操作。
+        </p>
+        {% if not current_user.is_authenticated %}
+        <p>如果您正在進行開發且想要測試，您可以使用 SMART Health IT Sandbox 進行測試：</p>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">SMART Health IT R4 Sandbox</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>使用 SMART Health IT R4 Sandbox 進行測試：</p>
+                        <a href="https://launch.smarthealthit.org/launcher?iss=https://launch.smarthealthit.org/v/r4/fhir&launch=eyJhIjoiMSJ9" 
+                           class="btn btn-primary">
+                            從 SMART R4 Sandbox 啟動
+                        </a>
+                        <p class="mt-2 small text-muted">這會帶您到 SMART Health IT 的啟動器頁面，您可以在那裡選擇病患和其他啟動選項。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p>您已登入。 <a href="{{ url_for('main_app_page') }}">前往主應用程式頁面</a></p>
+        {% endif %}
+    </div>
+{% endblock %}

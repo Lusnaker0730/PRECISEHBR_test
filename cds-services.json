@@ -1,0 +1,20 @@
+{
+  "services": [
+    {
+      "hook": "patient-view",
+      "id": "bleeding_risk_calculator",
+      "title": "出血風險計算器",
+      "description": "計算基於特定實驗室數據和條件的出血風險分數",
+      "prefetch": {
+        "patient": "Patient/{{context.patientId}}",
+        "hemoglobin": "Observation?patient={{context.patientId}}&code=718-7,30313-1,59260-0&_sort=-date&_count=1",
+        "creatinine": "Observation?patient={{context.patientId}}&code=2160-0,38483-4,59826-8&_sort=-date&_count=1",
+        "platelet": "Observation?patient={{context.patientId}}&code=777-3,26515-7,26516-5,778-1,13056-7&_sort=-date&_count=1",
+        "egfr": "Observation?patient={{context.patientId}}&code=33914-3&_sort=-date&_count=1",
+        "conditions": "Condition?patient={{context.patientId}}&_count=200",
+        "medications": "MedicationRequest?patient={{context.patientId}}&status=active&_count=200",
+        "transfusion_history": "Procedure?patient={{context.patientId}}&code=http://snomed.info/sct|116859006,http://snomed.info/sct|71493000,http://snomed.info/sct|12719002,http://snomed.info/sct|13569004&_count=200"
+      }
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h2>{{ title }} - 病患 ID: {{ patient_id }}</h2>
+
+    {% if calculation_details and calculation_details.category %}
+        <div class="alert alert-{% if calculation_details.category == 'high' %}danger{% elif calculation_details.category == 'medium' %}warning{% else %}info{% endif %}" role="alert">
+            <h4>出血風險等級: <span style="text-transform: capitalize;">{{ calculation_details.category }}</span> (總分: {{ calculation_details.score }})</h4>
+        </div>
+
+        <h3>計算細節:</h3>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr><th>年齡:</th><td>{{ calculation_details.age if calculation_details.age is not none else '未知' }}</td></tr>
+                <tr><th>性別:</th><td>{{ calculation_details.sex if calculation_details.sex else '未知' }}</td></tr>
+                <tr><th>Hb (g/dL):</th><td>{{ "%.1f" | format(calculation_details.hb_value) if calculation_details.hb_value is not none else '未測量或未知' }}</td></tr>
+                <tr><th>血小板 (k/uL):</th><td>{{ "%.0f" | format(calculation_details.platelet_value) if calculation_details.platelet_value is not none else '未測量或未知' }}</td></tr>
+                <tr><th>eGFR (mL/min):</th><td>{{ "%.0f" | format(calculation_details.egfr_value) if calculation_details.egfr_value is not none else '未測量或未知' }}</td></tr>
+                <tr><th>特定診斷/文字點數:</th><td>{{ calculation_details.condition_points }}</td></tr>
+                <tr><th>特定用藥點數:</th><td>{{ calculation_details.medication_points }}</td></tr>
+                <tr><th>輸血點數:</th><td>{{ calculation_details.blood_transfusion_points }}</td></tr>
+            </tbody>
+        </table>
+
+        {% if calculation_details.matched_transfusions %}
+            <h5>符合條件的輸血記錄 (過去12個月內):</h5>
+            <ul>
+            {% for trans in calculation_details.matched_transfusions %}
+                <li>{{ trans.text }} ({{ trans.date[:10] }}) - 原因: {{ trans.reason }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+
+        <h4>原始評分項目 (來自設定檔):</h4>
+        <pre style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">{{ calculation_details.score_details | tojson(indent=2) }}</pre>
+
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            無法計算或顯示出血風險。請檢查資料是否完整或稍後再試。
+        </div>
+    {% endif %}
+
+    <a href="{{ url_for('main_app_page') }}" class="btn btn-secondary mt-3">返回主應用頁面</a>
+    {% if session.get('fhir_server_url') %}
+        <a href="https://launch.smarthealthit.org/launcher?iss={{ session.get('fhir_server_url') }}" class="btn btn-outline-secondary mt-3 ml-2">返回EHR選擇其他病患</a>
+    {% endif %}
+{% endblock %}

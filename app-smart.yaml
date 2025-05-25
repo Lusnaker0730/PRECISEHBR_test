@@ -1,0 +1,12 @@
+service: smart-calc # <--- 指定你的新服務名稱
+runtime: python311 # 或其他版本
+entrypoint: gunicorn -b :$PORT APP:app
+# ... 其他設定，例如 env_variables ...
+env_variables:
+  # *** 確保這裡填入 SMART App 的 Client ID, Secret, Redirect URI 等 ***
+  SMART_CLIENT_ID: aluminum001@gmail.com
+  # SMART_CLIENT_SECRET: 'YOUR_SMART_SECRET_HERE' # 如果需要
+  SMART_REDIRECT_URI: http://127.0.0.1:8080/callback # *** 使用新服務的 URL ***
+  SMART_SCOPES: launch/patient openid fhirUser patient/Patient.read ... # 你的 Scopes
+  FLASK_SECRET_KEY: b'f\xd08\xd2\xbfa\t \x1a\x04\xf09O\xf3\xf0\xcf\x1e\x93\xd8C/\xa9b\x0b'
+  APP_BASE_URL: http://127.0.0.1:8080 # *** 使用新服務的 URL ***

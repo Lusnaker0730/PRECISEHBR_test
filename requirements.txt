@@ -1,0 +1,9 @@
+flask
+requests
+gunicorn
+Flask-Cors
+python-dotenv
+Authlib
+Flask-Login
+Werkzeug
+PyJWT[crypto]
