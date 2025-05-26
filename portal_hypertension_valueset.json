@@ -1,0 +1,49 @@
+{
+  "resourceType": "ValueSet",
+  "id": "portal-hypertension-snomed",
+  "url": "http://example.org/fhir/ValueSet/portal-hypertension-snomed",
+  "version": "0.1.0",
+  "name": "SNOMEDCTPortalHypertension",
+  "title": "SNOMED CT Portal Hypertension and Related Conditions",
+  "status": "draft",
+  "experimental": true,
+  "date": "2023-10-27",
+  "publisher": "Your Organization Name",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://example.org/contact"
+        }
+      ]
+    }
+  ],
+  "description": "A ValueSet that includes SNOMED CT codes related to portal hypertension and its common manifestations.",
+  "copyright": "This ValueSet includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (IHTSDO), and distributed by agreement between IHTSDO and HL7. Implementer use of SNOMED CT is not covered by this agreement.",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "concept": [
+          {
+            "code": "74730006",
+            "display": "Portal hypertension (disorder)"
+          },
+          {
+            "code": "37328000",
+            "display": "Esophageal varices (disorder)"
+          },
+          {
+            "code": "199320001",
+            "display": "Esophageal varices with bleeding due to portal hypertension (disorder)"
+          },
+          {
+            "code": "235896002",
+            "display": "Congestive splenomegaly (disorder)"
+          }
+        ]
+      }
+    ]
+  }
+} 

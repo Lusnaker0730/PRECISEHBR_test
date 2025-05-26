@@ -1,0 +1,57 @@
+{
+  "resourceType": "ValueSet",
+  "id": "ischemic-stroke-mod-severe-snomed",
+  "url": "http://example.org/fhir/ValueSet/ischemic-stroke-mod-severe-snomed",
+  "version": "0.1.0",
+  "name": "SNOMEDCTModToSevereIschemicStroke",
+  "title": "SNOMED CT Moderate to Severe Ischemic Stroke Events",
+  "status": "draft",
+  "experimental": true,
+  "date": "2023-10-27",
+  "publisher": "Your Organization Name",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://example.org/contact"
+        }
+      ]
+    }
+  ],
+  "description": "A ValueSet that includes SNOMED CT codes for types of ischemic stroke generally considered moderate to severe.",
+  "copyright": "This ValueSet includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (IHTSDO), and distributed by agreement between IHTSDO and HL7. Implementer use of SNOMED CT is not covered by this agreement.",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "concept": [
+          {
+            "code": "432504007",
+            "display": "Ischemic stroke (disorder)"
+          },
+          {
+            "code": "275734002",
+            "display": "Acute cerebral infarction (disorder)"
+          },
+          {
+            "code": "30768000",
+            "display": "Cerebral embolism (disorder)"
+          },
+          {
+            "code": "73740005",
+            "display": "Cerebral thrombosis (disorder)"
+          },
+          {
+            "code": "445060000",
+            "display": "Brainstem stroke syndrome (disorder)"
+          },
+          {
+            "code": "427170000",
+            "display": "Middle cerebral artery stroke (disorder)"
+          }
+        ]
+      }
+    ]
+  }
+} 

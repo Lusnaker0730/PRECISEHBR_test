@@ -1,0 +1,53 @@
+{
+  "resourceType": "ValueSet",
+  "id": "bleeding-diathesis-snomed",
+  "url": "http://example.org/fhir/ValueSet/bleeding-diathesis-snomed",
+  "version": "0.1.0",
+  "name": "SNOMEDCTBleedingDiathesis",
+  "title": "SNOMED CT Bleeding Diathesis and Related Disorders",
+  "status": "draft",
+  "experimental": true,
+  "date": "2023-10-27",
+  "publisher": "Your Organization Name",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://example.org/contact"
+        }
+      ]
+    }
+  ],
+  "description": "A ValueSet that includes SNOMED CT codes related to bleeding diathesis, coagulation defects, and specific bleeding disorders.",
+  "copyright": "This ValueSet includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (IHTSDO), and distributed by agreement between IHTSDO and HL7. Implementer use of SNOMED CT is not covered by this agreement.",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "concept": [
+          {
+            "code": "64779008",
+            "display": "Hemorrhagic diathesis (disorder)"
+          },
+          {
+            "code": "234717003",
+            "display": "Coagulation factor deficiency (disorder)"
+          },
+          {
+            "code": "77517001",
+            "display": "Von Willebrand's disease (disorder)"
+          },
+          {
+            "code": "50048000",
+            "display": "Hemophilia (disorder)"
+          },
+          {
+            "code": "271737000",
+            "display": "Acquired coagulation disorder (disorder)"
+          }
+        ]
+      }
+    ]
+  }
+} 

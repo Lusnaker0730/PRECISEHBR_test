@@ -1,0 +1,53 @@
+{
+  "resourceType": "ValueSet",
+  "id": "prior-bleeding-snomed",
+  "url": "http://example.org/fhir/ValueSet/prior-bleeding-snomed",
+  "version": "0.1.0",
+  "name": "SNOMEDCTPriorBleedingEvents",
+  "title": "SNOMED CT Prior Bleeding Events",
+  "status": "draft",
+  "experimental": true,
+  "date": "2023-10-27",
+  "publisher": "Your Organization Name",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://example.org/contact"
+        }
+      ]
+    }
+  ],
+  "description": "A ValueSet that includes SNOMED CT codes indicating a history of significant bleeding events.",
+  "copyright": "This ValueSet includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (IHTSDO), and distributed by agreement between IHTSDO and HL7. Implementer use of SNOMED CT is not covered by this agreement.",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "concept": [
+          {
+            "code": "162050001",
+            "display": "History of gastrointestinal hemorrhage (situation)"
+          },
+          {
+            "code": "428860009",
+            "display": "History of intracranial hemorrhage (situation)"
+          },
+          {
+            "code": "429044007",
+            "display": "History of subarachnoid hemorrhage (situation)"
+          },
+          {
+            "code": "443760008",
+            "display": "History of bleeding esophageal varices (situation)"
+          },
+          {
+            "code": "275190004",
+            "display": "History of hemoptysis (situation)"
+          }
+        ]
+      }
+    ]
+  }
+} 

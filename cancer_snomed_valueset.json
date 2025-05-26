@@ -1,0 +1,53 @@
+{
+  "resourceType": "ValueSet",
+  "id": "cancer-snomed",
+  "url": "http://example.org/fhir/ValueSet/cancer-snomed",
+  "version": "0.1.0",
+  "name": "SNOMEDCTCancerDisorders",
+  "title": "SNOMED CT Cancer and Malignant Neoplastic Disorders",
+  "status": "draft",
+  "experimental": true,
+  "date": "2023-10-27",
+  "publisher": "Your Organization Name",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://example.org/contact"
+        }
+      ]
+    }
+  ],
+  "description": "A ValueSet that includes SNOMED CT codes for various types of cancer and malignant neoplastic diseases.",
+  "copyright": "This ValueSet includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (IHTSDO), and distributed by agreement between IHTSDO and HL7. Implementer use of SNOMED CT is not covered by this agreement.",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "concept": [
+          {
+            "code": "363346000",
+            "display": "Malignant neoplastic disease (disorder)"
+          },
+          {
+            "code": "93817008",
+            "display": "Carcinoma of lung (disorder)"
+          },
+          {
+            "code": "254837009",
+            "display": "Malignant neoplasm of breast (disorder)"
+          },
+          {
+            "code": "363406005",
+            "display": "Malignant lymphoma (disorder)"
+          },
+          {
+            "code": "60793003",
+            "display": "Carcinoma of colon (disorder)"
+          }
+        ]
+      }
+    ]
+  }
+} 

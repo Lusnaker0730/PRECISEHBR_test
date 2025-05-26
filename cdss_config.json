@@ -1,6 +1,43 @@
 {
     "version": "1.0.0",
     "guideline_source": "Based on ARC-HBR components and general risk factors",
+    "local_valuesets": {
+      "bleeding_diathesis_snomed": [
+        ["http://snomed.info/sct", "64779008"],
+        ["http://snomed.info/sct", "234717003"],
+        ["http://snomed.info/sct", "77517001"],
+        ["http://snomed.info/sct", "50048000"],
+        ["http://snomed.info/sct", "271737000"]
+      ],
+      "portal_hypertension_snomed": [
+        ["http://snomed.info/sct", "74730006"],
+        ["http://snomed.info/sct", "37328000"],
+        ["http://snomed.info/sct", "199320001"],
+        ["http://snomed.info/sct", "235896002"]
+      ],
+      "prior_bleeding_snomed": [
+        ["http://snomed.info/sct", "162050001"],
+        ["http://snomed.info/sct", "428860009"],
+        ["http://snomed.info/sct", "429044007"],
+        ["http://snomed.info/sct", "443760008"],
+        ["http://snomed.info/sct", "275190004"]
+      ],
+      "cancer_snomed": [
+        ["http://snomed.info/sct", "363346000"],
+        ["http://snomed.info/sct", "93817008"],
+        ["http://snomed.info/sct", "254837009"],
+        ["http://snomed.info/sct", "363406005"],
+        ["http://snomed.info/sct", "60793003"]
+      ],
+      "ischemic_stroke_mod_severe_snomed": [
+        ["http://snomed.info/sct", "432504007"],
+        ["http://snomed.info/sct", "275734002"],
+        ["http://snomed.info/sct", "30768000"],
+        ["http://snomed.info/sct", "73740005"],
+        ["http://snomed.info/sct", "445060000"],
+        ["http://snomed.info/sct", "427170000"]
+      ]
+    },
     "medication_codings": {
       "oac": [
         ["http://www.nlm.nih.gov/research/umls/rxnorm", "1114195"],
@@ -123,5 +160,41 @@
           "high_risk_min_score": 2,
           "high_risk_label": "高出血風險",
           "low_risk_label": "未搜尋到高出血風險相關因子"
-     }
+     },
+     "value_set_rules": [
+       {
+         "url": "http://example.org/fhir/ValueSet/example-snomed-diabetes",
+         "score": 1,
+         "system_filter": "http://snomed.info/sct"
+       }
+     ],
+     "local_valueset_rules": [
+       {
+         "valueset_key": "bleeding_diathesis_snomed",
+         "score": 2
+       },
+       {
+         "valueset_key": "portal_hypertension_snomed",
+         "score": 2
+       },
+       {
+         "valueset_key": "prior_bleeding_snomed",
+         "score": 2
+       },
+       {
+         "valueset_key": "cancer_snomed",
+         "score": 2,
+         "conditions": {"status": "active", "max_months_ago": 12}
+       },
+       {
+         "valueset_key": "ischemic_stroke_mod_severe_snomed",
+         "score": 2,
+         "conditions": {"max_months_ago": 6}
+       },
+       {
+         "valueset_key": "ischemic_stroke_mod_severe_snomed", 
+         "score": 1,
+         "conditions": {"min_months_ago": 6, "max_months_ago": 12}
+       }
+     ]
   }

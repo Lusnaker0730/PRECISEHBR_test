@@ -1,0 +1,49 @@
+{
+  "resourceType": "ValueSet",
+  "id": "example-snomed-diabetes",
+  "url": "http://example.org/fhir/ValueSet/example-snomed-diabetes",
+  "version": "0.1.0",
+  "name": "ExampleSNOMEDDiabetesTypes",
+  "title": "Example SNOMED CT Diabetes Types ValueSet",
+  "status": "draft",
+  "experimental": true,
+  "date": "2023-10-27",
+  "publisher": "Your Organization Name",
+  "contact": [
+    {
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://example.org/contact"
+        }
+      ]
+    }
+  ],
+  "description": "An example ValueSet that includes a few SNOMED CT codes representing different types of diabetes mellitus.",
+  "copyright": "This ValueSet includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (IHTSDO), and distributed by agreement between IHTSDO and HL7. Implementer use of SNOMED CT is not covered by this agreement.",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "concept": [
+          {
+            "code": "44054006",
+            "display": "Diabetes mellitus type 1 (disorder)"
+          },
+          {
+            "code": "46635009",
+            "display": "Diabetes mellitus type 2 (disorder)"
+          },
+          {
+            "code": "315059002",
+            "display": "Gestational diabetes mellitus (disorder)"
+          },
+          {
+            "code": "19040000",
+            "display": "Secondary diabetes mellitus (disorder)"
+          }
+        ]
+      }
+    ]
+  }
+} 

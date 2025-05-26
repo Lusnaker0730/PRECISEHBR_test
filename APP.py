@@ -74,6 +74,13 @@ try:
     ) # Expects list of [system, code]
     CONDITION_PREFIX_RULES_CONFIG = cdss_config.get('condition_rules', {}).get('prefix_rules', [])
     CONDITION_VALUESET_RULES_CONFIG = cdss_config.get('condition_rules', {}).get('value_set_rules', []) # <-- NEW
+    # --- NEW: Load Local ValueSet Rules and Definitions ---
+    CONDITION_LOCAL_VALUESET_RULES_CONFIG = cdss_config.get('condition_rules', {}).get('local_valueset_rules', [])
+    LOCAL_VALUESETS_CONFIG = {
+        key: set(tuple(item) for item in value)
+        for key, value in cdss_config.get('local_valuesets', {}).items()
+    }
+    # --- END NEW ---
     RISK_PARAMS_CONFIG = cdss_config.get('risk_score_parameters', {})
     FINAL_RISK_THRESHOLD_CONFIG = cdss_config.get('final_risk_threshold', {})
     BLOOD_TRANSFUSION_CODES_CONFIG = set(tuple(item) for item in cdss_config.get('procedure_codings', {}).get('blood_transfusion', []) if isinstance(item, list) and len(item) == 2) # MODIFIED
@@ -92,12 +99,15 @@ except FileNotFoundError:
     # Create a minimal config if not found to allow app to start for auth testing
     cdss_config = {}
     OAC_CODINGS_CONFIG, NSAID_STEROID_CODINGS_CONFIG, CONDITION_CODES_SCORE_2_CONFIG, \
-    CONDITION_PREFIX_RULES_CONFIG, CONDITION_VALUESET_RULES_CONFIG, RISK_PARAMS_CONFIG, FINAL_RISK_THRESHOLD_CONFIG, \
-    BLOOD_TRANSFUSION_CODES_CONFIG, CONDITION_TEXT_KEYWORDS_SCORE_2_CONFIG = [set() for _ in range(8)]
+    CONDITION_PREFIX_RULES_CONFIG, CONDITION_VALUESET_RULES_CONFIG, CONDITION_LOCAL_VALUESET_RULES_CONFIG, \
+    LOCAL_VALUESETS_CONFIG, RISK_PARAMS_CONFIG, FINAL_RISK_THRESHOLD_CONFIG, \
+    BLOOD_TRANSFUSION_CODES_CONFIG, CONDITION_TEXT_KEYWORDS_SCORE_2_CONFIG = [set() for _ in range(11)] # Adjusted count for new configs
     # Ensure CONDITION_CODES_SCORE_2_CONFIG is initialized as a set even if file not found
     CONDITION_CODES_SCORE_2_CONFIG = set() # Explicitly set for clarity if using the loop above
     CONDITION_PREFIX_RULES_CONFIG = [] # it's a list
     CONDITION_VALUESET_RULES_CONFIG = [] # <-- NEW: Initialize if config file not found
+    CONDITION_LOCAL_VALUESET_RULES_CONFIG = [] # <-- NEW: Initialize if config file not found
+    LOCAL_VALUESETS_CONFIG = {} # <-- NEW: Initialize if config file not found
     RISK_PARAMS_CONFIG = {}
     FINAL_RISK_THRESHOLD_CONFIG = {}
     BLOOD_TRANSFUSION_CODES_CONFIG = set() # MODIFIED: Ensure it's a set if file not found
@@ -113,7 +123,22 @@ except Exception as e:
 
 
 app = Flask(__name__, template_folder='templates')
-CORS(app) # Or configure more specifically if needed
+
+# --- Specific CORS configuration ---
+# Allow all origins for general routes (like SMART launch, callback, UI)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# More specific CORS for /cds-services/ to allow sandbox.cds-hooks.org
+CORS(app, resources={
+    r"/cds-services/*": {
+        "origins": "https://sandbox.cds-hooks.org", 
+        "methods": ["GET", "POST", "OPTIONS"], 
+        "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With", "fhir-authorization"],
+        "supports_credentials": True
+    }
+})
+# --- End CORS configuration ---
+
 app.static_folder = 'static'
 
 # --- ValueSet Cache Initialization ---
@@ -999,8 +1024,8 @@ def get_egfr_value(patient_id, age, sex):
     return None # Return None if both attempts fail
 
 # --- MODIFIED: get_condition_points signature unchanged, but usage inside is affected by where keywords come from ---
-def get_condition_points(patient_id, codes_score_2, prefix_rules, text_keywords_score_2, value_set_rules):
-    """Fetches conditions and calculates points based on codes, prefixes, text keywords, and ValueSets.
+def get_condition_points(patient_id, codes_score_2, prefix_rules, text_keywords_score_2, value_set_rules, local_valueset_rules, local_valuesets_definitions): # ADDED local_valueset_rules and definitions
+    """Fetches conditions and calculates points based on codes, prefixes, text keywords, ValueSets (URL-based), and Local ValueSets.
        MODIFIED: No longer filters by date globally, but prefix rules can have own date conditions.
     """
     fhir_server = _get_fhir_server_url(); headers = _get_fhir_request_headers()
@@ -1097,20 +1122,27 @@ def get_condition_points(patient_id, codes_score_2, prefix_rules, text_keywords_
 
                         # --- 2. NEW: Check Text if score < 2 ---
                         if current_condition_max_score < 2 and code_data:
-                            condition_text = ""
+                            texts_to_join = []
                             # Get text from code.text
-                            if code_data.get("text"):
-                                condition_text += code_data.get("text", "").lower() + " "
+                            current_code_text = code_data.get("text")
+                            if current_code_text: # Check if text is not None and not empty
+                                texts_to_join.append(current_code_text.lower())
                             # Get text from coding.display
                             for coding in code_data.get("coding", []):
-                                condition_text += coding.get("display", "").lower() + " "
+                                display_text = coding.get("display")
+                                if display_text: # Check if display is not None and not empty
+                                    texts_to_join.append(display_text.lower())
+                            
+                            # Join all collected texts with a space, then strip any leading/trailing spaces from the final string.
+                            condition_text = " ".join(texts_to_join).strip()
 
-                            condition_text = condition_text.strip()
                             if condition_text: # Only check if we have some text
                                 # *** Uses the text_keywords_score_2 parameter passed to the function ***
-                                for keyword in text_keywords_score_2:
-                                    if keyword in condition_text:
-                                        app.logger.info(f"Condition ID {cond_id}: Text '{condition_text}' matched keyword '{keyword}'. Assigning score 2.")
+                                for keyword in text_keywords_score_2: # text_keywords_score_2 is a SET
+                                    # Ensure keyword search is also case-insensitive if text is lowercased
+                                    # and keywords in config might not be consistently cased.
+                                    if keyword.lower() in condition_text: 
+                                        app.logger.info(f"Condition ID {cond_id}: Text '{condition_text[:100]}' matched keyword '{keyword}'. Assigning score 2.")
                                         current_condition_max_score = 2
                                         break # Found a keyword, max score reached for this condition
                         # --- End Text Check ---
@@ -1146,6 +1178,59 @@ def get_condition_points(patient_id, codes_score_2, prefix_rules, text_keywords_
                                 else:
                                     app.logger.warning(f"Condition ID {cond_id}: Could not expand or get cached codes for ValueSet {vs_url}. Rule skipped for this condition.")
                         # --- End ValueSet Check ---
+
+                        # --- 4. NEW: Check Local ValueSet Rules if score < 2 ---
+                        if current_condition_max_score < 2:
+                            for local_vs_rule in local_valueset_rules:
+                                local_vs_key = local_vs_rule.get("valueset_key")
+                                local_vs_score = local_vs_rule.get("score", 0)
+                                rule_conditions = local_vs_rule.get("conditions") # Get optional conditions
+
+                                if not local_vs_key or local_vs_score == 0:
+                                    continue
+
+                                local_codes_set = local_valuesets_definitions.get(local_vs_key)
+
+                                if local_codes_set:
+                                    rule_match_for_local_vs = False
+                                    # Check rule-specific conditions (status, date) if they exist
+                                    if rule_conditions:
+                                        req_status = rule_conditions.get("status")
+                                        date_condition_met = True
+                                        if req_status and status != req_status: # status from the current condition resource
+                                            continue # Status doesn't match rule
+
+                                        max_m = rule_conditions.get("max_months_ago")
+                                        min_m = rule_conditions.get("min_months_ago")
+                                        # parsed_date is from the current condition resource
+                                        if parsed_date: 
+                                            if max_m is not None and parsed_date < (today - datetime.timedelta(days=max_m * 30 + 15)):
+                                                date_condition_met = False
+                                            if min_m is not None and parsed_date >= (today - datetime.timedelta(days=min_m * 30 + 15)):
+                                                date_condition_met = False
+                                        elif max_m is not None or min_m is not None: # Rule needs date, but condition has no valid date
+                                            date_condition_met = False
+                                        
+                                        if date_condition_met: 
+                                            rule_match_for_local_vs = True
+                                    else: # No specific conditions in this local_vs_rule, direct match is enough
+                                        rule_match_for_local_vs = True
+                                    
+                                    if rule_match_for_local_vs: # If rule conditions are met (or no conditions)
+                                        app.logger.debug(f"Condition ID {cond_id}: Checking against Local ValueSet '{local_vs_key}' ({len(local_codes_set)} codes) for score {local_vs_score}.")
+                                        if code_data and "coding" in code_data:
+                                            for cond_coding_entry in code_data.get("coding", []):
+                                                cond_system = cond_coding_entry.get("system")
+                                                cond_code_val = cond_coding_entry.get("code")
+                                                if cond_system and cond_code_val:
+                                                    if (cond_system, cond_code_val) in local_codes_set:
+                                                        app.logger.info(f"Condition ID {cond_id}: Code ({cond_system}, {cond_code_val}) matched Local ValueSet '{local_vs_key}' (and rule conditions). Assigning score {local_vs_score}.")
+                                                        current_condition_max_score = max(current_condition_max_score, local_vs_score)
+                                                        if current_condition_max_score == 2: break
+                                        if current_condition_max_score == 2: break 
+                                else:
+                                    app.logger.warning(f"Condition ID {cond_id}: Local ValueSet key '{local_vs_key}' not found or empty in definitions. Rule skipped.")
+                        # --- End Local ValueSet Check ---
 
                         # Update overall max score based on this condition's max score
                         max_score = max(max_score, current_condition_max_score)
@@ -1344,10 +1429,20 @@ def calculate_bleeding_risk(age, egfr_value, hemoglobin, sex, platelet, conditio
             'category': risk_category,
             'details': {
                 'base_score': base_score,
+                'age_score_component': age_score_component,
+                'egfr_score_component': egfr_score_component,
+                'hemoglobin_score_component': hemoglobin_score_component,
+                'platelet_score_component': platelet_score_component,
                 'condition_points': condition_points,
                 'medication_points': medication_points,
                 'blood_transfusion_points': blood_transfusion_points,
-                'risk_params': risk_params
+                'risk_params': risk_params,
+                # 新增原始數值
+                'age': age,
+                'egfr_value': egfr_value,
+                'hemoglobin': hemoglobin,
+                'sex': sex,
+                'platelet': platelet
             }
         }
 
@@ -1653,8 +1748,8 @@ def get_egfr_value_from_prefetch(prefetch_data, age, sex):
 # --- >> END NEW HELPER << ---
 
 # --- MODIFIED: get_condition_points_from_prefetch signature unchanged, but usage inside is affected ---
-def get_condition_points_from_prefetch(conditions_bundle, codes_score_2, prefix_rules, text_keywords_score_2, value_set_rules):
-    """處理預先取得的 Condition bundle，使用傳入的代碼集、前綴、文字關鍵字和 ValueSet。
+def get_condition_points_from_prefetch(conditions_bundle, codes_score_2, prefix_rules, text_keywords_score_2, value_set_rules, local_valueset_rules, local_valuesets_definitions): # ADDED local_valueset_rules and definitions
+    """處理預先取得的 Condition bundle，使用傳入的代碼集、前綴、文字關鍵字和 ValueSet (URL and Local)。
        MODIFIED: 不再於後端進行12個月日期過濾。
     """
     max_score = 0
@@ -1749,20 +1844,24 @@ def get_condition_points_from_prefetch(conditions_bundle, codes_score_2, prefix_
 
                 # --- 2. NEW: Check Text if score < 2 ---
                 if current_condition_max_score < 2 and code_data:
-                    condition_text = ""
+                    texts_to_join = []
                     # Get text from code.text
-                    if code_data.get("text"):
-                        condition_text += code_data.get("text", "").lower() + " "
+                    current_code_text = code_data.get("text")
+                    if current_code_text: # Check if text is not None and not empty
+                        texts_to_join.append(current_code_text.lower())
                     # Get text from coding.display
                     for coding in code_data.get("coding", []):
-                        condition_text += coding.get("display", "").lower() + " "
+                        display_text = coding.get("display")
+                        if display_text: # Check if display is not None and not empty
+                            texts_to_join.append(display_text.lower())
+                        
+                    condition_text = " ".join(texts_to_join).strip()
 
-                    condition_text = condition_text.strip()
                     if condition_text: # Only check if we have some text
                         # *** Uses the text_keywords_score_2 parameter passed to the function ***
-                        for keyword in text_keywords_score_2:
-                            if keyword in condition_text:
-                                app.logger.info(f"Prefetch Condition ID {cond_id} (within 12m): Text '{condition_text[:100]}...' matched keyword '{keyword}'. Assigning score 2.")
+                        for keyword in text_keywords_score_2: # text_keywords_score_2 is a SET
+                            if keyword.lower() in condition_text:
+                                app.logger.info(f"Prefetch Condition ID {cond_id}: Text '{condition_text[:100]}...' matched keyword '{keyword}'. Assigning score 2.")
                                 current_condition_max_score = 2
                                 break # Found a keyword, max score reached
                 # --- End Text Check ---
@@ -1796,6 +1895,60 @@ def get_condition_points_from_prefetch(conditions_bundle, codes_score_2, prefix_
                         else:
                             app.logger.warning(f"Prefetch Condition ID {cond_id} (within 12m): Could not expand or get cached codes for ValueSet {vs_url}. Rule will not be applied in this prefetch context if expansion requires live call without auth.")
                 # --- End ValueSet Check ---
+
+                # --- 4. NEW: Check Local ValueSet Rules if score < 2 (for prefetch) ---
+                if current_condition_max_score < 2:
+                    for local_vs_rule in local_valueset_rules:
+                        local_vs_key = local_vs_rule.get("valueset_key")
+                        local_vs_score = local_vs_rule.get("score", 0)
+                        rule_conditions = local_vs_rule.get("conditions") # Get optional conditions
+
+                        if not local_vs_key or local_vs_score == 0:
+                            continue
+                        
+                        local_codes_set = local_valuesets_definitions.get(local_vs_key)
+
+                        if local_codes_set:
+                            rule_match_for_local_vs_prefetch = False
+                            # Check rule-specific conditions (status, date) if they exist for prefetch
+                            if rule_conditions:
+                                req_status = rule_conditions.get("status")
+                                date_condition_met_prefetch = True
+                                if req_status and status != req_status: # status from the current prefetched condition
+                                    continue 
+
+                                max_m = rule_conditions.get("max_months_ago")
+                                min_m = rule_conditions.get("min_months_ago")
+                                # parsed_date is from the current prefetched condition
+                                if parsed_date: 
+                                    if max_m is not None and parsed_date < (today - datetime.timedelta(days=max_m * 30 + 15)):
+                                        date_condition_met_prefetch = False
+                                    if min_m is not None and parsed_date >= (today - datetime.timedelta(days=min_m * 30 + 15)):
+                                        date_condition_met_prefetch = False
+                                elif max_m is not None or min_m is not None: 
+                                    date_condition_met_prefetch = False
+                                
+                                if date_condition_met_prefetch:
+                                    rule_match_for_local_vs_prefetch = True
+                            else: # No specific conditions in this local_vs_rule, direct match is enough
+                                rule_match_for_local_vs_prefetch = True
+
+                            if rule_match_for_local_vs_prefetch: # If rule conditions are met
+                                app.logger.debug(f"Prefetch Condition ID {cond_id}: Checking Local VS '{local_vs_key}' ({len(local_codes_set)} codes) for score {local_vs_score}.")
+                                if code_data and "coding" in code_data:
+                                    for cond_coding_entry in code_data.get("coding", []):
+                                        cond_system = cond_coding_entry.get("system")
+                                        cond_code_val = cond_coding_entry.get("code")
+                                        if cond_system and cond_code_val:
+                                            if (cond_system, cond_code_val) in local_codes_set:
+                                                app.logger.info(f"Prefetch Condition ID {cond_id}: Code ({cond_system}, {cond_code_val}) matched Local VS '{local_vs_key}' (and rule conditions). Score {local_vs_score}.")
+                                                current_condition_max_score = max(current_condition_max_score, local_vs_score)
+                                                if current_condition_max_score == 2: break
+                                        if current_condition_max_score == 2: break 
+                                if current_condition_max_score == 2: break 
+                        else:
+                            app.logger.warning(f"Prefetch Condition ID {cond_id}: Local ValueSet key '{local_vs_key}' not found or empty. Rule skipped.")
+                # --- End Local ValueSet Check (for prefetch) ---
 
                 max_score = max(max_score, current_condition_max_score) # 更新全局最高分
                 processed_conditions.add(cond_id) # 標記為已處理
@@ -1900,7 +2053,9 @@ def bleeding_risk_calculator():
         CONDITION_CODES_SCORE_2_CONFIG,
         CONDITION_PREFIX_RULES_CONFIG,
         CONDITION_TEXT_KEYWORDS_SCORE_2_CONFIG, # Pass the new config variable
-        CONDITION_VALUESET_RULES_CONFIG # Pass the ValueSet rules config
+        CONDITION_VALUESET_RULES_CONFIG, # Pass the ValueSet rules config
+        CONDITION_LOCAL_VALUESET_RULES_CONFIG, # Pass Local VS rules
+        LOCAL_VALUESETS_CONFIG # Pass Local VS definitions
     )
     # --- END MODIFIED ---
     medication_points = get_medication_points_from_prefetch(
@@ -1953,86 +2108,30 @@ def bleeding_risk_calculator():
 
     score = bleeding_risk_result['score']
     risk = bleeding_risk_result['category']
+    details = bleeding_risk_result['details']
     # --- End Calculation ---
 
     # --- Build CDS Card response ---
     cards = []
     card_summary = f"出血風險評估: {risk} (評分 {score})"
 
-    # Build detailed breakdown string (using the final egfr_value_prefetch)
-    card_detail = f"病人的出血風險評估為 **{risk}** (基於 ARC-HBR 標準因子評分)。\n\n" \
-                  f"**評分項目:**\n"
-    # Age Score Text
-    age_score_val = 0
-    age_threshold_75 = RISK_PARAMS_CONFIG.get('age_75_threshold', 75) # Example, adjust key to match your config
-    age_score_75 = RISK_PARAMS_CONFIG.get('age_75', 0)
-    age_threshold_65 = RISK_PARAMS_CONFIG.get('age_65_threshold', 65) # Example
-    age_score_65 = RISK_PARAMS_CONFIG.get('age_65', 0)
-
-    if age is not None:
-        if age >= age_threshold_75:
-            age_score_val = age_score_75
-        elif age >= age_threshold_65:
-            age_score_val = age_score_65
-    card_detail += f"- 年齡 ({age if age is not None else '未知'}): {age_score_val} 分\n"
-
-    # eGFR Score Text (using the final egfr_value_prefetch)
-    egfr_score_val = 0
-    egfr_display = '未知'
-    if isinstance(egfr_value_prefetch, (int, float)):
-        egfr_display = f"{egfr_value_prefetch:.0f}" # Format without decimals
-        # Assuming risk_params for eGFR is a list of rules like [{ "max_value": 14, "score": X }, ...]
-        # or use direct keys like 'egfr_lt_15', 'egfr_lt_30' etc.
-        if egfr_value_prefetch < 15: egfr_score_val = RISK_PARAMS_CONFIG.get('egfr_lt_15',0)
-        elif egfr_value_prefetch < 30: egfr_score_val = RISK_PARAMS_CONFIG.get('egfr_lt_30',0)
-        elif egfr_value_prefetch < 45: egfr_score_val = RISK_PARAMS_CONFIG.get('egfr_lt_45',0)
-        # ... add more ranges as per your RISK_PARAMS_CONFIG
-        card_detail += f"- eGFR ({egfr_display} mL/min): {egfr_score_val} 分\n"
-    else:
-         card_detail += f"- eGFR ({egfr_display}): 0 分 (無法計算或獲取)\n"
-
-    # Hemoglobin Score Text
-    hb_score_val = 0
-    hb_display = '未知'
-    if isinstance(hb_value, (int, float)) and sex.lower() in ['male', 'female']:
-        hb_display = f"{hb_value:.1f}" # Format with one decimal
-        sex_key = sex.lower()
-        # Assuming direct keys like 'hgb_male_lt_13', 'hgb_female_lt_12'
-        if sex_key == 'male' and hb_value < 13: hb_score_val = RISK_PARAMS_CONFIG.get('hgb_male_lt_13',0)
-        elif sex_key == 'female' and hb_value < 12: hb_score_val = RISK_PARAMS_CONFIG.get('hgb_female_lt_12',0)
-        card_detail += f"- Hb ({hb_display} g/dL, 性別 {sex}): {hb_score_val} 分\n"
-    elif isinstance(hb_value, (int, float)): # Known Hb but unknown sex
-         hb_display = f"{hb_value:.1f}"
-         card_detail += f"- Hb ({hb_display} g/dL, 性別未知): 0 分 (無法依性別評分)\n"
-    else: # Unknown Hb
-         card_detail += f"- Hb ({hb_display}): 0 分 (無法計算或獲取)\n"
-
-    # Platelet Score Text
-    platelet_score_val = 0
-    platelet_display = '未知'
-    # Assuming direct key like 'plt_lt_100' for score when platelet < 100
-    platelet_threshold = RISK_PARAMS_CONFIG.get('plt_lt_100_threshold', 100)
-    if isinstance(platelet, (int, float)):
-        platelet_display = f"{platelet:.0f}" # Format without decimals
-        if platelet < platelet_threshold: # Note: < threshold for score
-            platelet_score_val = RISK_PARAMS_CONFIG.get('plt_lt_100', 0)
-    card_detail += f"- 血小板 ({platelet_display} k/uL): {platelet_score_val} 分\n"
-
-
-    # Condition and Medication Points
-    card_detail += f"- 特定診斷/文字 (Condition): {condition_points} 分\n" \
-                   f"- 特定用藥 (Medication): {medication_points} 分\n"
-    # Blood Transfusion points - assuming blood_transfusion_points is passed to calculate_bleeding_risk
-    # and the card detail should reflect the points used in calculation.
-    # The current calculate_bleeding_risk takes blood_transfusion_points as an argument.
-    # If you have a get_blood_transfusion_points_from_prefetch, use its result.
-    # For now, using the placeholder 0 from the call to calculate_bleeding_risk
-    card_detail += f"- 輸血 (Procedure): {bleeding_risk_result['details']['blood_transfusion_points']} 分\n\n" \
-                   f"**總分: {score}**"
+    # Build detailed breakdown string using details dict for consistency
+    card_detail = (
+        f"病人的出血風險評估為 **{risk}** (基於 ARC-HBR 標準因子評分)。\n\n"
+        f"**評分項目:**\n"
+        f"- 年齡: {details.get('age', '未知')} 歲 ({details.get('age_score_component', 0)} 分)\n"
+        f"- eGFR: {format(details.get('egfr_value'), '.1f') if details.get('egfr_value') is not None else '未知'} mL/min ({details.get('egfr_score_component', 0)} 分)\n"
+        f"- Hb: {format(details.get('hemoglobin'), '.1f') if details.get('hemoglobin') is not None else '未知'} g/dL (性別: {details.get('sex', '未知')}) ({details.get('hemoglobin_score_component', 0)} 分)\n"
+        f"- 血小板: {format(details.get('platelet'), '.1f') if details.get('platelet') is not None else '未知'} k/uL ({details.get('platelet_score_component', 0)} 分)\n"
+        f"- 特定診斷/文字 (Condition): {details.get('condition_points', 0)} 分\n"
+        f"- 特定用藥 (Medication): {details.get('medication_points', 0)} 分\n"
+        f"- 輸血 (Procedure): {details.get('blood_transfusion_points', 0)} 分\n\n"
+        f"**總分: {score}**"
+    )
 
     indicator_type = "info" # Default
-    if risk == FINAL_RISK_THRESHOLD_CONFIG.get('high_risk_label', 'high'): # Assuming 'high' if label not in config
-        indicator_type = "critical" # More severe for high risk
+    if risk == FINAL_RISK_THRESHOLD_CONFIG.get('high_risk_label', 'high'):
+        indicator_type = "critical"
     elif risk == FINAL_RISK_THRESHOLD_CONFIG.get('medium_risk_label', 'medium'):
         indicator_type = "warning"
     # Low risk remains info
@@ -2106,7 +2205,9 @@ def calculate_risk_ui_page():
         CONDITION_CODES_SCORE_2_CONFIG,
         CONDITION_PREFIX_RULES_CONFIG,
         CONDITION_TEXT_KEYWORDS_SCORE_2_CONFIG,
-        CONDITION_VALUESET_RULES_CONFIG
+        CONDITION_VALUESET_RULES_CONFIG,
+        CONDITION_LOCAL_VALUESET_RULES_CONFIG, # Pass Local VS rules
+        LOCAL_VALUESETS_CONFIG # Pass Local VS definitions
     )
     medication_points = get_medication_points(
         patient_id,
