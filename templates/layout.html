@@ -5,28 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - SMART FHIR App</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { padding-top: 5rem; }
-        .flash-messages .alert { margin-bottom: 1rem; }
+        body { 
+            padding-top: 5rem; 
+            background-color: #f8f9fa;
+        }
+        .flash-messages .alert { 
+            margin-bottom: 1rem; 
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        main.container, main.container-fluid {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+        }
+        .btn {
+            border-radius: 25px;
+        }
+        .badge {
+            border-radius: 15px;
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-        <a class="navbar-brand" href="{{ url_for('index') }}">FHIR App</a>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top shadow">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+            <i class="fas fa-heartbeat mr-2"></i>
+            SMART FHIR App
+        </a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarsExampleDefault">
             <ul class="navbar-nav mr-auto">
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">首頁</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">
+                        <i class="fas fa-home mr-1"></i>首頁
+                    </a>
+                </li>
                 {% if current_user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main_app_page') }}">主應用</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main_app_page') }}">
+                        <i class="fas fa-tachometer-alt mr-1"></i>主應用
+                    </a>
+                </li>
                 {% endif %}
             </ul>
             <ul class="navbar-nav ml-auto">
                 {% if current_user.is_authenticated %}
-                    <li class="nav-item"><span class="navbar-text">已登入：{{ current_user.name }} | </span></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">登出</a></li>
+                    <li class="nav-item">
+                        <span class="navbar-text">
+                            <i class="fas fa-user mr-1"></i>
+                            已登入：{{ current_user.name }} | 
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt mr-1"></i>登出
+                        </a>
+                    </li>
                 {% else %}
                     <!-- <li class="nav-item"><a class="nav-link" href="#">登入 (EHR Launch)</a></li> -->
                 {% endif %}
@@ -34,12 +81,13 @@
         </div>
     </nav>
 
-    <main role="main" class="container">
+    <main role="main" class="container-fluid">
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'check-circle' if category == 'success' else 'exclamation-circle' }} mr-2"></i>
                             {{ message }}
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>

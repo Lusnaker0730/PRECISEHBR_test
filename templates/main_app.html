@@ -1,65 +1,303 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h2>{{ title }}</h2>
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="mr-3">
+                            <i class="fas fa-heartbeat fa-3x"></i>
+                        </div>
+                        <div>
+                            <h1 class="mb-1">{{ title }}</h1>
+                            <p class="mb-0 lead">智慧醫療風險評估系統</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% if current_user.is_authenticated %}
-        <p>歡迎, <strong>{{ current_user.name or '使用者' }}</strong>!</p> {# Default to '使用者' if name is None #}
-        <p>Email: {{ current_user.email or '未提供' }}</p>
-        <p>FHIR User URL: {{ current_user.fhir_user_url or '未提供' }}</p>
-
-        {# DEBUG: Display launch_token #}
-        <p><small>Debug Launch Token: {{ session.get('launch_token', 'Not set') }}</small></p>
-        
-        {% if session.patient_id %}
-            <p>目前病患 ID: <strong>{{ session.patient_id }}</strong></p>
-            <p>病患姓名: <strong>{{ patient_name_display or '未提供' }}</strong></p> {# Use the new patient_name_display variable #}
+        <!-- User Info Section -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-md mr-2 text-primary"></i>
+                            使用者資訊
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-4 font-weight-bold">姓名:</div>
+                            <div class="col-sm-8">{{ current_user.name or '使用者' }}</div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4 font-weight-bold">Email:</div>
+                            <div class="col-sm-8">{{ current_user.email or '未提供' }}</div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4 font-weight-bold">FHIR User:</div>
+                            <div class="col-sm-8">
+                                <small class="text-muted">{{ current_user.fhir_user_url or '未提供' }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            {% if patient_data and patient_data.id %}
-                <h4>病患資訊 (範例 FHIR Resource):</h4>
-                <pre style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">{{ patient_data | tojson(indent=2) }}</pre>
-            {% elif patient_data %}
-                 <h4>病患資訊 (範例):</h4>
-                 <pre style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">{{ patient_data | tojson(indent=2) }}</pre>
+            <!-- System Info Section -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-server mr-2 text-success"></i>
+                            系統連線資訊
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-sm-4 font-weight-bold">FHIR Server:</div>
+                            <div class="col-sm-8">
+                                <small class="text-muted">{{ session.fhir_server_url }}</small>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row mb-2">
+                            <div class="col-sm-4 font-weight-bold">授權範圍:</div>
+                            <div class="col-sm-8">
+                                <small class="text-muted">{{ session.scopes_granted }}</small>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4 font-weight-bold">Access Token:</div>
+                            <div class="col-sm-8">
+                                <small class="text-muted font-monospace">{{ session.access_token[:30] }}...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient Section -->
+        {% if session.patient_id %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-left-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">
+                                <i class="fas fa-user-injured mr-2"></i>
+                                目前病患資訊
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="row mb-3">
+                                        <div class="col-sm-3">
+                                            <strong>病患 ID:</strong>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <span class="badge badge-primary badge-lg">{{ session.patient_id }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-3">
+                                            <strong>病患姓名:</strong>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <h5 class="text-primary mb-0">{{ patient_name_display or '未提供' }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="btn-group-vertical" role="group">
+                                        <a href="{{ url_for('calculate_risk_ui_page') }}" class="btn btn-success btn-lg mb-2">
+                                            <i class="fas fa-calculator mr-2"></i>
+                                            計算出血風險
+                                        </a>
+                                        {% if session.get('fhir_server_url') %}
+                                            <a href="https://launch.smarthealthit.org/launcher?iss={{ session.get('fhir_server_url') }}" 
+                                               class="btn btn-outline-secondary">
+                                                <i class="fas fa-exchange-alt mr-2"></i>
+                                                切換病患
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patient Data Details (Collapsible) -->
+            {% if patient_data %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link text-decoration-none" type="button" data-toggle="collapse" 
+                                            data-target="#patientDataCollapse" aria-expanded="false" aria-controls="patientDataCollapse">
+                                        <i class="fas fa-file-medical mr-2"></i>
+                                        病患 FHIR 資源詳細資料
+                                        <i class="fas fa-chevron-down ml-2"></i>
+                                    </button>
+                                </h5>
+                            </div>
+                            <div class="collapse" id="patientDataCollapse">
+                                <div class="card-body">
+                                    <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">{{ patient_data | tojson(indent=2) }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             {% endif %}
-            <a href="{{ url_for('calculate_risk_ui_page') }}" class="btn btn-info mt-2">計算此病患的出血風險</a>
-            {% if session.get('fhir_server_url') %}
-                {% set fhir_iss = session.get('fhir_server_url') %}
-                
-                {# Check if the current ISS is the SMART Health IT R4 Sandbox #}
-                {% if fhir_iss == 'https://launch.smarthealthit.org/v/r4/fhir' or fhir_iss == 'https://launch.smarthealthit.org/v/r4/fhir/' %}
-                    {# For SMART R4 Sandbox, always use the generic launch token to re-initiate patient selection #}
-                    <a href="https://launch.smarthealthit.org/launcher?iss={{ fhir_iss }}&launch=eyJhIjoiMSJ9" class="btn btn-secondary mt-2 ml-2" title="返回 SMART Sandbox 選擇其他病患">返回EHR選擇其他病患</a>
-                {% else %}
-                    {# For other EHRs, we may not have a reliable generic way to return to patient selection via launch.smarthealthit.org/launcher.
-                       The original session['launch_token'] is for the app's current context, not for re-triggering the EHR's UI.
-                       Providing a link to the ISS (FHIR server base) might be an option, or disabling.
-                       For now, let's make it a disabled button for non-sandbox EHRs as we can't guarantee functionality.
-                    #}
-                    <a class="btn btn-secondary mt-2 ml-2 disabled" href="#" role="button" aria-disabled="true" title="無法為此EHR自動返回病患選擇畫面">返回EHR選擇其他病患</a>
-                {% endif %}
-            {% endif %}
+
         {% else %}
-            <div class="alert alert-info">目前沒有選定的病患情境。</div>
+            <!-- No Patient Selected -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-left-warning">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-warning mb-1">目前沒有選定的病患情境</h5>
+                                    <p class="mb-0">請透過您的 EHR 系統選擇病患以開始使用風險計算功能。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endif %}
-        
-        <p class="mt-3">Access Token: <small>{{ session.access_token[:30] }}...</small> (僅顯示前30字元)</p>
-        <p>FHIR Server URL: {{ session.fhir_server_url }}</p>
-        <p>Granted Scopes: {{ session.scopes_granted }}</p>
 
-        <h4>ID Token Claims (部分):</h4>
-        <pre style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
-        ID: {{ session.get('id_token_claims', {}).get('sub') }}
-        Name: {{ session.get('id_token_claims', {}).get('name', session.get('id_token_claims', {}).get('profile_name'))}}
-        Email: {{ session.get('id_token_claims', {}).get('email') }}
-        fhirUser: {{ session.get('id_token_claims', {}).get('fhirUser', session.get('id_token_claims', {}).get('profile')) }}
-        Exp: {{ human_readable_time(session.get('id_token_claims', {}).get('exp')) }}
-        </pre>
-        
+        <!-- ID Token Claims (Collapsible) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link text-decoration-none" type="button" data-toggle="collapse" 
+                                    data-target="#tokenClaimsCollapse" aria-expanded="false" aria-controls="tokenClaimsCollapse">
+                                <i class="fas fa-key mr-2"></i>
+                                ID Token 驗證資訊
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="tokenClaimsCollapse">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td class="font-weight-bold">使用者 ID:</td>
+                                            <td><code>{{ session.get('id_token_claims', {}).get('sub') or 'N/A' }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">姓名:</td>
+                                            <td>{{ session.get('id_token_claims', {}).get('name', session.get('id_token_claims', {}).get('profile_name')) or 'N/A' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">Email:</td>
+                                            <td>{{ session.get('id_token_claims', {}).get('email') or 'N/A' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">FHIR User:</td>
+                                            <td><small class="text-muted">{{ session.get('id_token_claims', {}).get('fhirUser', session.get('id_token_claims', {}).get('profile')) or 'N/A' }}</small></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">Token 到期時間:</td>
+                                            <td>{{ human_readable_time(session.get('id_token_claims', {}).get('exp')) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     {% else %}
-        <p>請登入以查看此頁面。</p>
+        <!-- Not Authenticated -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm border-left-danger">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-lock fa-3x text-danger"></i>
+                        </div>
+                        <h4 class="text-danger">需要登入驗證</h4>
+                        <p class="lead">請透過您的 EHR 系統啟動此應用程式以進行登入。</p>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">
+                            <i class="fas fa-home mr-2"></i>
+                            返回首頁
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
+</div>
 
-    <!-- 您的應用程式主要內容將會放在這裡 -->
-    <!-- 例如，如果這是一個UI應用程式，可以在這裡呼叫計算邏輯 -->
+<!-- Custom Styles -->
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+    
+    .border-left-primary {
+        border-left: 4px solid #007bff !important;
+    }
+    
+    .border-left-warning {
+        border-left: 4px solid #ffc107 !important;
+    }
+    
+    .border-left-danger {
+        border-left: 4px solid #dc3545 !important;
+    }
+    
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .badge-lg {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .font-monospace {
+        font-family: 'Courier New', monospace;
+    }
+    
+    .btn-group-vertical .btn {
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-group-vertical .btn:last-child {
+        margin-bottom: 0;
+    }
+</style>
 
 {% endblock %}
 

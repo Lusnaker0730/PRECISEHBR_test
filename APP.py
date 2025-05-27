@@ -1030,9 +1030,9 @@ def get_condition_points(patient_id, codes_score_2, prefix_rules, text_keywords_
        NOW RETURNS: (score, matched_details_list)
     """
     fhir_server = _get_fhir_server_url(); headers = _get_fhir_request_headers()
-    if not fhir_server or not headers: return 0, [] # MODIFIED: Return empty list for details
+    if not fhir_server or not headers: return 0, []
     max_score = 0
-    matched_conditions_details = [] # NEW: List to store details of matched conditions
+    matched_conditions_details = []
     today = datetime.date.today()
 
     url = f"{fhir_server}/Condition"
@@ -1081,7 +1081,7 @@ def get_condition_points(patient_id, codes_score_2, prefix_rules, text_keywords_
                                 date_str_part = recorded_date_str.split('T')[0]
                                 if len(date_str_part) >= 10: parsed_date = datetime.datetime.strptime(date_str_part[:10], "%Y-%m-%d").date()
                             except ValueError: pass
-                        
+
                         initial_max_score_for_condition = 0 # To track if this specific condition contributes anything new
 
                         # --- 1. Check Codes and Prefixes ---
@@ -1901,7 +1901,7 @@ def get_condition_points_from_prefetch(conditions_bundle, codes_score_2, prefix_
                         display_text = coding.get("display")
                         if display_text: # Check if display is not None and not empty
                             texts_to_join.append(display_text.lower())
-                        
+
                     condition_text = " ".join(texts_to_join).strip()
 
                     if condition_text: # Only check if we have some text
@@ -2165,7 +2165,7 @@ def bleeding_risk_calculator():
     # Build detailed breakdown string using details dict for consistency
     card_detail = (
         f"病人的出血風險評估為 **{risk}** (基於 ARC-HBR 標準因子評分)。\n\n"
-        f"**評分項目:**\n"
+                  f"**評分項目:**\n"
         f"- 年齡: {details.get('age', '未知')} 歲 ({details.get('age_score_component', 0)} 分)\n"
         f"- eGFR: {format(details.get('egfr_value'), '.1f') if details.get('egfr_value') is not None else '未知'} mL/min ({details.get('egfr_score_component', 0)} 分)\n"
         f"- Hb: {format(details.get('hemoglobin'), '.1f') if details.get('hemoglobin') is not None else '未知'} g/dL (性別: {details.get('sex', '未知')}) ({details.get('hemoglobin_score_component', 0)} 分)\n"
@@ -2173,7 +2173,7 @@ def bleeding_risk_calculator():
         f"- 特定診斷/文字 (Condition): {details.get('condition_points', 0)} 分\n"
         f"- 特定用藥 (Medication): {details.get('medication_points', 0)} 分\n"
         f"- 輸血 (Procedure): {details.get('blood_transfusion_points', 0)} 分\n\n"
-        f"**總分: {score}**"
+                   f"**總分: {score}**"
     )
 
     indicator_type = "info" # Default
@@ -2195,7 +2195,7 @@ def bleeding_risk_calculator():
     if risk == high_risk_label_actual:
         card["suggestions"] = [
             { "label": "查閱高出血風險(HBR)處置建議",
-              "actions": [ { 
+              "actions": [ {
                   "type": "open-url",
                   "description": "開啟 ESC 2020 HBR 指引參考 (Eur Heart J)",
                   "url": "https://academic.oup.com/eurheartj/article/42/13/1289/5901694"
