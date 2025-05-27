@@ -57,8 +57,8 @@ LOINC_CODES = {
 # --- >> END NEW: LOINC Code Definitions << ---
 
 # --- Load External CDSS Configuration ---
-# ... (Configuration loading remains the same) ...
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "cdss_config.json")
+# Support custom config path for testing
+CONFIG_FILE = os.getenv('CDSS_CONFIG_PATH', os.path.join(os.path.dirname(__file__), "cdss_config.json"))
 try:
     with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
         cdss_config = json.load(f)

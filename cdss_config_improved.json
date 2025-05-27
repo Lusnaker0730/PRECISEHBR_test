@@ -1,0 +1,360 @@
+{
+    "version": "1.1.0",
+    "guideline_source": "Based on ARC-HBR 2019 consensus document and clinical evidence",
+    "scoring_logic": {
+        "major_criterion_score": 2,
+        "minor_criterion_score": 1,
+        "high_risk_threshold": 2,
+        "description": "Major criteria = 2 points, Minor criteria = 1 point, ≥2 points = High bleeding risk"
+    },
+    "local_valuesets": {
+        "bleeding_diathesis_snomed": [
+            ["http://snomed.info/sct", "64779008"],
+            ["http://snomed.info/sct", "234717003"],
+            ["http://snomed.info/sct", "77517001"],
+            ["http://snomed.info/sct", "50048000"],
+            ["http://snomed.info/sct", "271737000"],
+            ["http://snomed.info/sct", "302215000"],
+            ["http://snomed.info/sct", "432102000"]
+        ],
+        "portal_hypertension_snomed": [
+            ["http://snomed.info/sct", "74730006"],
+            ["http://snomed.info/sct", "37328000"],
+            ["http://snomed.info/sct", "199320001"],
+            ["http://snomed.info/sct", "235896002"],
+            ["http://snomed.info/sct", "31712002"]
+        ],
+        "prior_bleeding_snomed": [
+            ["http://snomed.info/sct", "162050001"],
+            ["http://snomed.info/sct", "428860009"],
+            ["http://snomed.info/sct", "429044007"],
+            ["http://snomed.info/sct", "443760008"],
+            ["http://snomed.info/sct", "275190004"],
+            ["http://snomed.info/sct", "95545007"],
+            ["http://snomed.info/sct", "74474003"]
+        ],
+        "cancer_snomed": [
+            ["http://snomed.info/sct", "363346000"],
+            ["http://snomed.info/sct", "93817008"],
+            ["http://snomed.info/sct", "254837009"],
+            ["http://snomed.info/sct", "363406005"],
+            ["http://snomed.info/sct", "60793003"],
+            ["http://snomed.info/sct", "372087000"],
+            ["http://snomed.info/sct", "109355002"]
+        ],
+        "ischemic_stroke_mod_severe_snomed": [
+            ["http://snomed.info/sct", "432504007"],
+            ["http://snomed.info/sct", "275734002"],
+            ["http://snomed.info/sct", "30768000"],
+            ["http://snomed.info/sct", "73740005"],
+            ["http://snomed.info/sct", "445060000"],
+            ["http://snomed.info/sct", "427170000"]
+        ],
+        "brain_avm_snomed": [
+            ["http://snomed.info/sct", "234466008"],
+            ["http://snomed.info/sct", "432504007"],
+            ["http://snomed.info/sct", "95457008"]
+        ],
+        "cirrhosis_portal_hypertension_snomed": [
+            ["http://snomed.info/sct", "19943007"],
+            ["http://snomed.info/sct", "31712002"],
+            ["http://snomed.info/sct", "235896002"],
+            ["http://snomed.info/sct", "37328000"]
+        ]
+    },
+    "medication_codings": {
+        "oac": [
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "1114195"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "1364428"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "313992"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "848937"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "11289"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "855288"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "1599538"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "1037042"]
+        ],
+        "nsaid_steroid": [
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "2878"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "3264"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "6902"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "8638"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "6813"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "19737"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "140587"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "3355"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "3393"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "24605"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "4331"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "4502"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "5640"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "5781"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "6142"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "35827"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "257844"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "41493"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "7258"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "298665"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "32613"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "8356"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "10237"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "10636"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "31448"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "202433"],
+            ["http://www.nlm.nih.gov/research/umls/rxnorm", "5492"]
+        ]
+    },
+    "procedure_codings": {
+        "blood_transfusion": [
+            ["http://snomed.info/sct", "116859006"],
+            ["http://snomed.info/sct", "71493000"],
+            ["http://snomed.info/sct", "12719002"],
+            ["http://snomed.info/sct", "13569004"],
+            ["http://snomed.info/sct", "33389009"],
+            ["http://snomed.info/sct", "180208006"]
+        ],
+        "major_surgery": [
+            ["http://snomed.info/sct", "387713003"],
+            ["http://snomed.info/sct", "274025005"],
+            ["http://snomed.info/sct", "363679005"],
+            ["http://snomed.info/sct", "112802009"]
+        ]
+    },
+    "condition_rules": {
+        "codes_score_2": [
+            ["http://hl7.org/fhir/sid/icd-10-cm", "Q280"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "Q282"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K766"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K7881"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K7469"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K250"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K254"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K260"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K264"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K270"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K280"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K284"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K5521"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K8501"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K2901"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K7031"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K7460"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K745"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K744"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K743"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K717"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K7030"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "I8501"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "I8510"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "I8511"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K2081"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K2091"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K2101"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "K2211"],
+            ["http://snomed.info/sct", "19943007"],
+            ["http://snomed.info/sct", "34742003"],
+            ["http://snomed.info/sct", "64779008"],
+            ["http://snomed.info/sct", "131148009"],
+            ["http://snomed.info/sct", "116859006"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "I61"],
+            ["http://hl7.org/fhir/sid/icd-10-cm", "D68"]
+        ],
+        "prefix_rules": [
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "I61"], "score": 2, "conditions": null, "description": "Intracranial hemorrhage"},
+            {"prefix": ["http://snomed.info/sct", "1386000"], "score": 2, "conditions": null, "description": "Intracranial hemorrhage"},
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "C"], "score": 2, "conditions": {"status": "active", "max_months_ago": 12}, "description": "Active cancer within 12 months"},
+            {"prefix": ["http://snomed.info/sct", "363346000"], "score": 2, "conditions": {"status": "active", "max_months_ago": 12}, "description": "Active malignancy"},
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "I63"], "score": 2, "conditions": {"max_months_ago": 6}, "description": "Moderate/severe ischemic stroke within 6 months"},
+            {"prefix": ["http://snomed.info/sct", "422504002"], "score": 2, "conditions": {"max_months_ago": 6}, "description": "Ischemic stroke within 6 months"},
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "I63"], "score": 1, "conditions": {"min_months_ago": 6, "max_months_ago": 12}, "description": "Ischemic stroke 6-12 months ago"},
+            {"prefix": ["http://snomed.info/sct", "422504002"], "score": 1, "conditions": {"min_months_ago": 6, "max_months_ago": 12}, "description": "Ischemic stroke 6-12 months ago"},
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "D68"], "score": 2, "conditions": null, "description": "Bleeding disorders"},
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "K70"], "score": 2, "conditions": null, "description": "Alcoholic liver disease with portal hypertension"},
+            {"prefix": ["http://hl7.org/fhir/sid/icd-10-cm", "K74"], "score": 2, "conditions": null, "description": "Fibrosis and cirrhosis of liver"}
+        ],
+        "text_keywords_score_2": [
+            "with bleeding",
+            "bleeding",
+            "with hemorrhage",
+            "hemorrhage",
+            "cirrhosis",
+            "malignant neoplasm",
+            "carcinoma",
+            "cancer",
+            "portal hypertension",
+            "bleeding diathesis",
+            "coagulopathy",
+            "thrombocytopenia",
+            "von willebrand",
+            "hemophilia"
+        ],
+        "text_keywords_score_1": [
+            "mild stroke",
+            "transient ischemic attack",
+            "TIA",
+            "chronic kidney disease stage 3",
+            "mild anemia"
+        ]
+    },
+    "risk_score_parameters": {
+        "age_gte_75_params": { 
+            "threshold": 75, 
+            "score": 1,
+            "description": "Age ≥75 years (ARC-HBR minor criterion)"
+        },
+        "age_gte_65_params": { 
+            "threshold": 65, 
+            "score": 0.5,
+            "description": "Age 65-74 years (intermediate risk)"
+        },
+        "egfr_lt_15_params": { 
+            "threshold": 15, 
+            "score": 2,
+            "description": "Severe CKD eGFR <15 (ARC-HBR major criterion)"
+        },
+        "egfr_lt_30_params": { 
+            "threshold": 30, 
+            "score": 2,
+            "description": "Moderate-severe CKD eGFR <30 (ARC-HBR major criterion)"
+        },
+        "egfr_lt_45_params": { 
+            "threshold": 45, 
+            "score": 1,
+            "description": "Moderate CKD eGFR 30-59 (ARC-HBR minor criterion)"
+        },
+        "egfr_30_to_59_params": { 
+            "threshold_min": 30,
+            "threshold_max": 59, 
+            "score": 1,
+            "description": "Moderate CKD eGFR 30-59 (ARC-HBR minor criterion)"
+        },
+        "hgb_lt_11_params": { 
+            "threshold": 11, 
+            "score": 2,
+            "description": "Severe anemia Hb <11 g/dL (ARC-HBR major criterion)"
+        },
+        "hgb_male_lt_13_params": { 
+            "threshold": 13, 
+            "score": 1,
+            "description": "Male anemia Hb 11-12.9 g/dL (ARC-HBR minor criterion)"
+        },
+        "hgb_female_lt_12_params": { 
+            "threshold": 12, 
+            "score": 1,
+            "description": "Female anemia Hb 11-11.9 g/dL (ARC-HBR minor criterion)"
+        },
+        "plt_lt_100_params": { 
+            "threshold": 100, 
+            "score": 2,
+            "description": "Thrombocytopenia <100 k/uL (ARC-HBR major criterion)"
+        },
+        "medication": {
+            "oac_score": 2,
+            "nsaid_steroid_score": 1,
+            "description": "OAC = major criterion (2 points), NSAID/steroid = minor criterion (1 point)"
+        },
+        "condition_score_max": 2,
+        "blood_transfusion": {
+            "within_6_months_score": 2,
+            "within_6_to_12_months_score": 1,
+            "description": "Recent transfusion scoring based on timing"
+        },
+        "surgery": {
+            "major_surgery_within_30_days_score": 2,
+            "planned_major_surgery_score": 2,
+            "description": "Recent or planned major surgery (ARC-HBR major criterion)"
+        }
+    },
+    "final_risk_threshold": {
+        "high_risk_min_score": 2,
+        "high_risk_label": "高出血風險",
+        "medium_risk_min_score": 1,
+        "medium_risk_label": "中等出血風險",
+        "low_risk_label": "低出血風險",
+        "description": "≥2 points = high risk, 1 point = medium risk, 0 points = low risk"
+    },
+    "value_set_rules": [
+        {
+            "url": "http://example.org/fhir/ValueSet/example-snomed-diabetes",
+            "score": 1,
+            "system_filter": "http://snomed.info/sct"
+        }
+    ],
+    "local_valueset_rules": [
+        {
+            "valueset_key": "bleeding_diathesis_snomed",
+            "score": 2,
+            "description": "Chronic bleeding diathesis (ARC-HBR major criterion)"
+        },
+        {
+            "valueset_key": "portal_hypertension_snomed",
+            "score": 2,
+            "description": "Portal hypertension (ARC-HBR major criterion)"
+        },
+        {
+            "valueset_key": "prior_bleeding_snomed",
+            "score": 2,
+            "conditions": {"max_months_ago": 6},
+            "description": "Prior bleeding within 6 months (ARC-HBR major criterion)"
+        },
+        {
+            "valueset_key": "prior_bleeding_snomed",
+            "score": 1,
+            "conditions": {"min_months_ago": 6, "max_months_ago": 12},
+            "description": "Prior bleeding 6-12 months ago (ARC-HBR minor criterion)"
+        },
+        {
+            "valueset_key": "cancer_snomed",
+            "score": 2,
+            "conditions": {"status": "active", "max_months_ago": 12},
+            "description": "Active cancer within 12 months (ARC-HBR major criterion)"
+        },
+        {
+            "valueset_key": "ischemic_stroke_mod_severe_snomed",
+            "score": 2,
+            "conditions": {"max_months_ago": 6},
+            "description": "Moderate/severe ischemic stroke within 6 months (ARC-HBR major criterion)"
+        },
+        {
+            "valueset_key": "ischemic_stroke_mod_severe_snomed", 
+            "score": 1,
+            "conditions": {"min_months_ago": 6, "max_months_ago": 12},
+            "description": "Ischemic stroke 6-12 months ago (ARC-HBR minor criterion)"
+        },
+        {
+            "valueset_key": "brain_avm_snomed",
+            "score": 2,
+            "description": "Brain arteriovenous malformation (ARC-HBR major criterion)"
+        },
+        {
+            "valueset_key": "cirrhosis_portal_hypertension_snomed",
+            "score": 2,
+            "description": "Cirrhosis with portal hypertension (ARC-HBR major criterion)"
+        }
+    ],
+    "arc_hbr_compliance": {
+        "version": "ARC-HBR 2019",
+        "major_criteria_implemented": [
+            "Age ≥75 years (as minor in this system)",
+            "Oral anticoagulation",
+            "Severe CKD (eGFR <30)",
+            "Severe anemia (Hb <11 g/dL)",
+            "Prior bleeding within 6 months",
+            "Thrombocytopenia (<100 k/uL)",
+            "Chronic bleeding diathesis",
+            "Cirrhosis with portal hypertension",
+            "Active cancer",
+            "Previous ICH or moderate/severe stroke within 6 months",
+            "Major surgery within 30 days or planned",
+            "Brain AVM"
+        ],
+        "minor_criteria_implemented": [
+            "Age ≥75 years",
+            "Moderate CKD (eGFR 30-59)",
+            "Mild anemia (sex-specific thresholds)",
+            "Prior bleeding 6-12 months ago",
+            "Ischemic stroke >6 months ago",
+            "Long-term NSAID/steroid use"
+        ],
+        "notes": "Scoring adapted to local system: major=2pts, minor=1pt, threshold=2pts"
+    }
+} 
