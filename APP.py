@@ -23,6 +23,30 @@ from jwt import PyJWKClient # For ID Token validation
 
 from flask_cors import CORS
 
+# --- SMART on FHIR Client (Phase 1 Optimization) ---
+try:
+    from fhirclient import client
+    from fhirclient.models.patient import Patient
+    from fhirclient.models.observation import Observation
+    from fhirclient.models.condition import Condition
+    from fhirclient.models.medicationrequest import MedicationRequest
+    from fhirclient.models.procedure import Procedure
+    FHIRCLIENT_AVAILABLE = True
+    logging.info("fhirclient successfully imported for optimization")
+except ImportError as e:
+    FHIRCLIENT_AVAILABLE = False
+    logging.warning(f"fhirclient not available, falling back to manual FHIR API calls: {e}")
+
+# Import optimization functions
+try:
+    import fhirclient_optimizations
+    OPTIMIZATIONS_AVAILABLE = True
+    logging.info("fhirclient optimizations module imported successfully")
+except ImportError as e:
+    OPTIMIZATIONS_AVAILABLE = False
+    logging.warning(f"fhirclient optimizations not available: {e}")
+# --- End SMART on FHIR Client Imports ---
+
 # --- Load Environment Variables ---
 load_dotenv()
 
@@ -890,7 +914,24 @@ def main_app_page():
 
     if patient_id:
         app.logger.info(f"Main app page: Attempting to fetch patient data for patient ID: {patient_id}")
-        patient_resource = get_patient_data() # Fetches the full Patient resource
+        
+        # Phase 1 Optimization: Try optimized approach first, fall back to manual
+        if OPTIMIZATIONS_AVAILABLE:
+            try:
+                patient_resource = fhirclient_optimizations.get_patient_data_optimized(
+                    SMART_CLIENT_ID, get_patient_data
+                )
+                if patient_resource:
+                    app.logger.info(f"Patient resource fetched using optimization: {patient_resource.get('id')}")
+                else:
+                    app.logger.info("Optimization returned None, using fallback")
+                    patient_resource = get_patient_data()
+            except Exception as e:
+                app.logger.error(f"Error in optimized patient data retrieval: {e}")
+                patient_resource = get_patient_data()
+        else:
+            patient_resource = get_patient_data() # Original manual approach
+        
         if patient_resource:
             app.logger.info(f"Patient resource fetched: {patient_resource.get('id')}")
             # Extract patient name using the helper function
@@ -2473,10 +2514,32 @@ def calculate_risk_ui_page():
     else:
         flash(f"Unable to retrieve basic information for patient {patient_id}. Calculation may be incomplete.", "danger")
 
-    # 2. Fetch Lab Values and eGFR
-    hb_value = get_hemoglobin(patient_id)
-    platelet_value = get_platelet(patient_id)
-    egfr_value = get_egfr_value(patient_id, age, sex) 
+    # 2. Fetch Lab Values and eGFR (Phase 1 Optimization)
+    if OPTIMIZATIONS_AVAILABLE:
+        try:
+            app.logger.info("Using optimized lab value retrieval")
+            hb_value = fhirclient_optimizations.get_hemoglobin_optimized(
+                patient_id, LOINC_CODES["HEMOGLOBIN"], SMART_CLIENT_ID, get_hemoglobin
+            )
+            platelet_value = fhirclient_optimizations.get_platelet_optimized(
+                patient_id, LOINC_CODES["PLATELET"], SMART_CLIENT_ID, get_platelet
+            )
+            egfr_value = fhirclient_optimizations.get_egfr_value_optimized(
+                patient_id, age, sex, LOINC_CODES["CREATININE"], LOINC_CODES["EGFR_DIRECT"], 
+                SMART_CLIENT_ID, get_egfr_value
+            )
+        except Exception as e:
+            app.logger.error(f"Error in optimized lab value retrieval: {e}")
+            app.logger.info("Falling back to manual lab value retrieval")
+            hb_value = get_hemoglobin(patient_id)
+            platelet_value = get_platelet(patient_id)
+            egfr_value = get_egfr_value(patient_id, age, sex)
+    else:
+        app.logger.info("Using manual lab value retrieval")
+        hb_value = get_hemoglobin(patient_id)
+        platelet_value = get_platelet(patient_id)
+        egfr_value = get_egfr_value(patient_id, age, sex) 
+    
     app.logger.info(f"Patient {patient_id} Labs: Hb={hb_value}, Platelet={platelet_value}, eGFR={egfr_value}")
 
     # 3. Get Condition, Medication, and Blood Transfusion Points AND DETAILS
