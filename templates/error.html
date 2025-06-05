@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+
+{% block title %}認證錯誤 - SMART FHIR 出血風險計算器{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Error Icon and Title -->
+            <div class="text-center mb-4">
+                <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                <h1 class="h2 text-danger mt-3">{{ error_info.title }}</h1>
+            </div>
+
+            <!-- Error Message Card -->
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        發生了什麼？
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ error_info.message }}</p>
+                    
+                    {% if error_description %}
+                    <div class="alert alert-warning">
+                        <strong>技術詳情：</strong> {{ error_description }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Guidance Card -->
+            <div class="card border-info mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        建議的解決步驟
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        {% for step in error_info.guidance %}
+                        <li class="mb-2">{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <a href="{{ url_for('index') }}" class="btn btn-primary me-3">
+                    <i class="fas fa-home me-2"></i>
+                    回到首頁
+                </a>
+                
+                {% if error_uri %}
+                <a href="{{ error_uri }}" target="_blank" class="btn btn-outline-info me-3">
+                    <i class="fas fa-external-link-alt me-2"></i>
+                    更多資訊
+                </a>
+                {% endif %}
+                
+                <button class="btn btn-outline-secondary" onclick="window.history.back();">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    上一頁
+                </button>
+            </div>
+
+            <!-- Technical Information (Collapsible) -->
+            {% if error_code != 'unknown_error' %}
+            <div class="mt-4">
+                <button class="btn btn-link text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#technicalDetails" aria-expanded="false" aria-controls="technicalDetails">
+                    <i class="fas fa-code me-2"></i>
+                    顯示技術資訊
+                </button>
+                <div class="collapse" id="technicalDetails">
+                    <div class="card card-body bg-light">
+                        <h6>技術詳情</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>錯誤代碼：</strong> <code>{{ error_code }}</code></li>
+                            {% if error_description %}
+                            <li><strong>錯誤描述：</strong> <code>{{ error_description }}</code></li>
+                            {% endif %}
+                            {% if error_uri %}
+                            <li><strong>錯誤資訊 URI：</strong> <a href="{{ error_uri }}" target="_blank">{{ error_uri }}</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Help Contact Information -->
+            <div class="alert alert-light border mt-4">
+                <h6 class="alert-heading">
+                    <i class="fas fa-question-circle me-2"></i>
+                    需要進一步協助？
+                </h6>
+                <p class="mb-2">如果問題持續發生，請聯繫您的：</p>
+                <ul class="mb-0">
+                    <li>EHR 系統管理員</li>
+                    <li>IT 技術支援部門</li>
+                    <li>應用程式開發團隊</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error_code == 'server_error' %}
+<script>
+// Auto-refresh for server errors after 30 seconds
+setTimeout(function() {
+    if (confirm('伺服器錯誤可能是暫時性的。要重新嘗試嗎？')) {
+        window.location.href = '{{ url_for("index") }}';
+    }
+}, 30000);
+</script>
+{% endif %}
+{% endblock %} 

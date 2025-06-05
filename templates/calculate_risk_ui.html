@@ -44,7 +44,7 @@
                                     {% elif calculation_details.category == 'medium' %}
                                         - Standard monitoring with caution
                                     {% else %}
-                                        - Consider de-escalate or shorten antithrombotic treatment
+                                        - Low bleeding risk detected. Consider standard antithrombotic treatment with routine monitoring
                                     {% endif %}
                                 </p>
                             </div>
@@ -410,13 +410,11 @@
                         </a>
                     </div>
                     <div>
-                        {% if session.get('fhir_server_url') %}
-                            <a href="https://launch.smarthealthit.org/launcher?iss={{ session.get('fhir_server_url') }}" 
-                               class="btn btn-outline-primary">
-                                <i class="fas fa-exchange-alt mr-2"></i>
-                                Return to EHR to Select Other Patients
-                            </a>
-                        {% endif %}
+                        <a href="https://launch.smarthealthit.org/launcher?launch_uri=http%3A%2F%2F127.0.0.1%3A8080%2Flaunch&iss=https%3A%2F%2Flaunch.smarthealthit.org%2Fv%2Fr4%2Ffhir&fhir_ver=4" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-exchange-alt mr-2"></i>
+                            Return to EHR to Select Other Patients
+                        </a>
                     </div>
                 </div>
             </div>

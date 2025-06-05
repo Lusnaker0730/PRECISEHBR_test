@@ -40,8 +40,8 @@ except ImportError as e:
 # Import optimization functions
 try:
     import fhirclient_optimizations
-    OPTIMIZATIONS_AVAILABLE = True
-    logging.info("fhirclient optimizations module imported successfully")
+    OPTIMIZATIONS_AVAILABLE = False  # EMERGENCY DISABLE - Force manual mode only
+    logging.info("fhirclient optimizations module imported but DISABLED for stability")
 except ImportError as e:
     OPTIMIZATIONS_AVAILABLE = False
     logging.warning(f"fhirclient optimizations not available: {e}")
@@ -82,7 +82,7 @@ except ValueError as e:
 # --- >> SMART 設定 (從環境變數讀取) << ---
 SMART_CLIENT_ID = os.getenv('SMART_CLIENT_ID')
 SMART_CLIENT_SECRET = os.getenv('SMART_CLIENT_SECRET') # Public client 可能不需要
-SMART_SCOPES = os.getenv('SMART_SCOPES', 'launch/patient openid fhirUser profile email patient/Patient.read patient/Observation.read patient/Condition.read patient/MedicationRequest.read') # 加入 profile/email
+SMART_SCOPES = os.getenv('SMART_SCOPES', 'launch/patient openid fhirUser profile email patient/Patient.read patient/Observation.read patient/Condition.read patient/MedicationRequest.read online_access') # 加入 online_access
 
 # --- MODIFIED: Read SMART_REDIRECT_URI from environment and clean it ---
 raw_redirect_uri = os.getenv('SMART_REDIRECT_URI')
@@ -109,6 +109,65 @@ LOINC_CODES = {
     "EGFR_DIRECT": ("33914-3",) # Direct eGFR observation LOINC
 }
 # --- >> END NEW: LOINC Code Definitions << ---
+
+# --- >> SMART Scope Management << ---
+def validate_and_optimize_scopes(requested_scopes, context='patient'):
+    """
+    Validates and optimizes SMART scopes based on Oracle Health best practices.
+    Returns optimized scope string.
+    """
+    scopes = requested_scopes.split() if isinstance(requested_scopes, str) else requested_scopes
+    
+    # Base required scopes
+    base_scopes = ['openid', 'fhirUser']
+    
+    # Context-specific scopes
+    if context == 'patient':
+        base_scopes.append('launch/patient')
+        # Ensure patient context for all clinical data scopes
+        clinical_scopes = []
+        for scope in scopes:
+            if scope.startswith('user/') and any(resource in scope for resource in ['Patient', 'Observation', 'Condition', 'MedicationRequest', 'Procedure']):
+                # Convert user scopes to patient scopes for patient context
+                clinical_scopes.append(scope.replace('user/', 'patient/'))
+            elif scope.startswith('patient/'):
+                clinical_scopes.append(scope)
+            elif scope in ['openid', 'fhirUser', 'profile', 'email', 'online_access', 'offline_access', 'launch', 'launch/patient']:
+                clinical_scopes.append(scope)
+        scopes = clinical_scopes
+    
+    # Add refresh capability for better user experience
+    if 'online_access' not in scopes and 'offline_access' not in scopes:
+        scopes.append('online_access')
+    
+    # Combine and deduplicate
+    all_scopes = list(set(base_scopes + scopes))
+    
+    # Remove any invalid or unsupported scopes
+    valid_scope_patterns = [
+        r'^openid$',
+        r'^fhirUser$',
+        r'^profile$',
+        r'^email$',
+        r'^launch$',
+        r'^launch/patient$',
+        r'^launch/encounter$',
+        r'^online_access$',
+        r'^offline_access$',
+        r'^(patient|user|system)/(Patient|Observation|Condition|MedicationRequest|Procedure|Encounter|AllergyIntolerance|DiagnosticReport)\.(read|write|\*)$'
+    ]
+    
+    import re
+    validated_scopes = []
+    for scope in all_scopes:
+        if any(re.match(pattern, scope) for pattern in valid_scope_patterns):
+            validated_scopes.append(scope)
+        else:
+            logging.warning(f"Removing invalid scope: {scope}")
+    
+    return ' '.join(validated_scopes)
+
+# --- >> 結束 SMART Scope Management << ---
 
 # --- Load External CDSS Configuration ---
 # Support custom config path for testing
@@ -282,7 +341,7 @@ def add_security_headers(response):
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'index' # Redirect to landing page if login required
-login_manager.login_message = "請登入以存取此頁面。如果這是 SMART on FHIR 應用程式，請透過您的 EHR 系統啟動。"
+login_manager.login_message = "Please log in to access this page. If this is a SMART on FHIR application, please launch through your EHR system."
 login_manager.login_message_category = "warning"
 
 # --- Authlib Configuration ---
@@ -602,25 +661,43 @@ def launch():
         flash("解析 FHIR 伺服器元數據時發生錯誤。", "danger")
         return redirect(url_for('index'))
 
-    # PKCE Code Verifier and Challenge
-    code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode('utf-8')
+    # PKCE Code Verifier and Challenge - Enhanced per RFC 7636
+    # Generate a cryptographically random 32-byte code verifier
+    code_verifier_bytes = os.urandom(32)
+    code_verifier = base64.urlsafe_b64encode(code_verifier_bytes).decode('utf-8').rstrip('=')
+    
+    # Ensure code verifier meets RFC 7636 requirements (43-128 characters, unreserved characters)
+    if len(code_verifier) < 43:
+        # Pad with additional random bytes if needed
+        additional_bytes = os.urandom(8)
+        code_verifier += base64.urlsafe_b64encode(additional_bytes).decode('utf-8').rstrip('=')
+    
+    # Clean any potentially problematic characters (though base64url should be safe)
     code_verifier = re.sub('[^a-zA-Z0-9_.-~]+', '', code_verifier) # Per RFC 7636
     session['pkce_code_verifier'] = code_verifier
 
+    # Generate SHA256 challenge
     code_challenge_sha256 = hashlib.sha256(code_verifier.encode('utf-8')).digest()
-    code_challenge = base64.urlsafe_b64encode(code_challenge_sha256).decode('utf-8')
-    code_challenge = code_challenge.replace('=', '') # Remove padding
+    code_challenge = base64.urlsafe_b64encode(code_challenge_sha256).decode('utf-8').rstrip('=')
 
-    # State parameter for CSRF protection
-    state = hashlib.sha256(os.urandom(64)).hexdigest()
+    # Enhanced state parameter generation - use 256 bits of entropy
+    state_bytes = os.urandom(32)
+    state = base64.urlsafe_b64encode(state_bytes).decode('utf-8').rstrip('=')
     session['oauth_state'] = state
 
-    # Construct Authorization URL
+    # Clean up the scopes (from environment variable)
+    scopes = SMART_SCOPES
+    
+    # Apply Oracle Health best practices for scope optimization
+    optimized_scopes = validate_and_optimize_scopes(scopes, context='patient')
+    app.logger.info(f"Optimized scopes: {optimized_scopes}")
+    
+    # Build the authorization URL
     auth_params = {
         'response_type': 'code',
         'client_id': SMART_CLIENT_ID,
         'redirect_uri': SMART_REDIRECT_URI,
-        'scope': SMART_SCOPES,
+        'scope': optimized_scopes,
         'state': state,
         'aud': iss, # Audience is the FHIR server (resource server)
         'code_challenge': code_challenge,
@@ -735,6 +812,8 @@ def callback():
     session['patient_id'] = token_data.get('patient') # Critical for launch/patient scope
     session['scopes_granted'] = token_data.get('scope')
     session['id_token_jwt'] = token_data.get('id_token') # Store raw ID token string
+    session['refresh_token'] = token_data.get('refresh_token') # Store refresh token for session renewal
+    session['token_expires_at'] = time.time() + token_data.get('expires_in', 600) # Store expiration time
     # fhir_server_url is already in session from launch
 
     if not session.get('access_token'):
@@ -957,35 +1036,193 @@ def main_app_page():
 @app.route('/logout')
 @login_required
 def logout():
-    """Logs out the current user."""
-    # Clear Flask-Login session
-    logout_user()
+    """
+    Logs out the user and clears session data.
+    """
+    user_name = session.get('user_info', {}).get('name', 'Unknown')
+    app.logger.info(f"User '{user_name}' logging out")
     
-    # Clear custom session keys related to OAuth/FHIR
-    keys_to_clear = [
-        'access_token', 'id_token_jwt', 'id_token_claims', 'user_info',
-        'fhir_server_url', 'patient_id', 'scopes_granted',
-        'authorize_url', 'token_url', 'jwks_uri',
-        'launch_token', 'pkce_code_verifier', 'oauth_state'
-    ]
-    for key in keys_to_clear:
-        session.pop(key, None)
+    logout_user() # Flask-Login logout
     
-    flash("您已成功登出。", "success")
-    app.logger.info(f"User {current_user.id if hasattr(current_user, 'id') else 'Unknown'} logged out.") # current_user is proxy, might be anon here
+    # Clear SMART/OAuth session data
+    session.pop('access_token', None)
+    session.pop('refresh_token', None)
+    session.pop('patient_id', None)
+    session.pop('scopes_granted', None)
+    session.pop('id_token_jwt', None)
+    session.pop('id_token_claims', None)
+    session.pop('fhir_server_url', None)
+    session.pop('user_info', None)
+    session.pop('token_expires_at', None)
+    
+    flash("已成功登出。", "success")
     return redirect(url_for('index'))
+
+
+@app.route('/auth-error')
+def auth_error():
+    """
+    Handles authentication and authorization errors with user-friendly guidance.
+    """
+    error_code = request.args.get('error', 'unknown_error')
+    error_description = request.args.get('error_description', '')
+    error_uri = request.args.get('error_uri', '')
+    
+    app.logger.warning(f"Authentication error: {error_code} - {error_description}")
+    
+    # Provide user-friendly error messages and guidance
+    error_messages = {
+        'access_denied': {
+            'title': '授權被拒絕',
+            'message': '您已拒絕授權或管理員已限制存取權限。',
+            'guidance': [
+                '確認您有適當的權限存取此應用程式',
+                '聯繫您的系統管理員以獲得協助',
+                '檢查是否需要重新登入 EHR 系統'
+            ]
+        },
+        'invalid_request': {
+            'title': '無效的請求',
+            'message': '授權請求包含無效的參數。',
+            'guidance': [
+                '請重新啟動應用程式',
+                '確保從 EHR 系統正確啟動',
+                '聯繫技術支援如果問題持續發生'
+            ]
+        },
+        'unauthorized_client': {
+            'title': '未授權的客戶端',
+            'message': '此應用程式尚未註冊或已被暫停。',
+            'guidance': [
+                '聯繫您的系統管理員',
+                '確認應用程式已正確註冊',
+                '檢查應用程式是否已被暫停'
+            ]
+        },
+        'server_error': {
+            'title': '伺服器錯誤',
+            'message': '授權伺服器發生內部錯誤。',
+            'guidance': [
+                '請稍後再試',
+                '檢查 EHR 系統狀態',
+                '聯繫技術支援如果問題持續發生'
+            ]
+        }
+    }
+    
+    error_info = error_messages.get(error_code, {
+        'title': '未知錯誤',
+        'message': error_description or '發生未預期的錯誤。',
+        'guidance': [
+            '請重新嘗試授權流程',
+            '確保網路連接正常',
+            '聯繫技術支援以獲得協助'
+        ]
+    })
+    
+    return render_template('error.html', 
+                         error_code=error_code,
+                         error_info=error_info,
+                         error_uri=error_uri,
+                         error_description=error_description)
+
 
 # --- End SMART on FHIR Routes ---
 
 
 # --- FHIR Helper Functions (Using Session for Token/Server) ---
+
+def refresh_access_token():
+    """
+    Refreshes the access token using the refresh token.
+    Returns True if successful, False otherwise.
+    """
+    refresh_token = session.get('refresh_token')
+    token_url = session.get('token_url')
+    fhir_server_url = session.get('fhir_server_url')
+    
+    if not refresh_token or not token_url:
+        app.logger.warning("Cannot refresh token: missing refresh_token or token_url")
+        return False
+    
+    refresh_payload = {
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'client_id': SMART_CLIENT_ID
+    }
+    
+    # For confidential clients, include client_secret
+    if SMART_CLIENT_SECRET:
+        refresh_payload['client_secret'] = SMART_CLIENT_SECRET
+    
+    try:
+        app.logger.info("Attempting to refresh access token")
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        
+        token_response = requests.post(token_url, data=refresh_payload, headers=headers, timeout=15)
+        token_response.raise_for_status()
+        token_data = token_response.json()
+        
+        # Update session with new token data
+        session['access_token'] = token_data.get('access_token')
+        session['token_expires_at'] = time.time() + token_data.get('expires_in', 600)
+        session['scopes_granted'] = token_data.get('scope', session.get('scopes_granted'))
+        
+        # Update refresh token if provided (some servers issue new refresh tokens)
+        new_refresh_token = token_data.get('refresh_token')
+        if new_refresh_token:
+            session['refresh_token'] = new_refresh_token
+        
+        app.logger.info("Access token refreshed successfully")
+        return True
+        
+    except requests.exceptions.HTTPError as e:
+        app.logger.error(f"Token refresh failed with HTTP error: {e}")
+        if e.response and e.response.status_code == 401:
+            app.logger.warning("Refresh token may be expired or revoked")
+            # Clear session data to force re-authentication
+            session.pop('access_token', None)
+            session.pop('refresh_token', None)
+            session.pop('token_expires_at', None)
+        return False
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Token refresh failed due to RequestException: {e}")
+        return False
+    except ValueError as e:
+        app.logger.error(f"Error decoding refresh token response: {e}")
+        return False
+
+
+def is_token_expired():
+    """
+    Check if the current access token is expired or will expire soon.
+    Returns True if token is expired or will expire within 60 seconds.
+    """
+    expires_at = session.get('token_expires_at')
+    if not expires_at:
+        return True
+    
+    # Consider token expired if it expires within 60 seconds
+    return time.time() >= (expires_at - 60)
+
+
 # ... (Helper functions _get_fhir_request_headers, _get_fhir_server_url remain the same) ...
 def _get_fhir_request_headers():
-    """Gets Authorization header from session."""
+    """Gets Authorization header from session with automatic token refresh."""
     access_token = session.get('access_token')
+    
+    # Check if token is expired and try to refresh
+    if access_token and is_token_expired():
+        app.logger.info("Access token is expired or expiring soon, attempting refresh")
+        if refresh_access_token():
+            access_token = session.get('access_token')
+        else:
+            app.logger.warning("Token refresh failed, current token may be invalid")
+    
     if not access_token:
         app.logger.error("Access token not found in session for FHIR request.")
         return None
+    
     return {
         'Authorization': f'Bearer {access_token}',
         'Accept': 'application/fhir+json'
@@ -2502,10 +2739,24 @@ def calculate_risk_ui_page():
 
     app.logger.info(f"Initiating bleeding risk calculation for UI display for patient: {patient_id}")
 
-    # 1. Fetch Patient Demographics (for age/sex)
-    patient_resource = get_patient_data() 
+    # 1. Fetch Patient Demographics (EMERGENCY MODE: Manual Only)
+    app.logger.info("🚨 EMERGENCY MODE: Using manual patient data retrieval only")
+    
+    patient_resource = None
     age = None
     sex = "unknown"
+    
+    # Simple manual patient data retrieval
+    try:
+        patient_resource = get_patient_data()
+        if patient_resource:
+            app.logger.info(f"Patient resource fetched manually: {patient_resource.get('id')}")
+        else:
+            app.logger.warning("No patient resource returned from manual fetch")
+    except Exception as e:
+        app.logger.error(f"Error in manual patient data retrieval: {e}")
+        patient_resource = None
+    
     if patient_resource:
         birth_date = patient_resource.get("birthDate")
         age = calculate_age(birth_date) if birth_date else None
@@ -2514,32 +2765,31 @@ def calculate_risk_ui_page():
     else:
         flash(f"Unable to retrieve basic information for patient {patient_id}. Calculation may be incomplete.", "danger")
 
-    # 2. Fetch Lab Values and eGFR (Phase 1 Optimization)
-    if OPTIMIZATIONS_AVAILABLE:
-        try:
-            app.logger.info("Using optimized lab value retrieval")
-            hb_value = fhirclient_optimizations.get_hemoglobin_optimized(
-                patient_id, LOINC_CODES["HEMOGLOBIN"], SMART_CLIENT_ID, get_hemoglobin
-            )
-            platelet_value = fhirclient_optimizations.get_platelet_optimized(
-                patient_id, LOINC_CODES["PLATELET"], SMART_CLIENT_ID, get_platelet
-            )
-            egfr_value = fhirclient_optimizations.get_egfr_value_optimized(
-                patient_id, age, sex, LOINC_CODES["CREATININE"], LOINC_CODES["EGFR_DIRECT"], 
-                SMART_CLIENT_ID, get_egfr_value
-            )
-        except Exception as e:
-            app.logger.error(f"Error in optimized lab value retrieval: {e}")
-            app.logger.info("Falling back to manual lab value retrieval")
-            hb_value = get_hemoglobin(patient_id)
-            platelet_value = get_platelet(patient_id)
-            egfr_value = get_egfr_value(patient_id, age, sex)
-    else:
-        app.logger.info("Using manual lab value retrieval")
-        hb_value = get_hemoglobin(patient_id)
-        platelet_value = get_platelet(patient_id)
-        egfr_value = get_egfr_value(patient_id, age, sex) 
+    # 2. Fetch Lab Values (EMERGENCY MODE: Manual Only)
+    app.logger.info("🚨 EMERGENCY MODE: Using manual lab value retrieval only")
     
+    # Simple manual lab value retrieval - no optimizations
+    try:
+        app.logger.info("Fetching hemoglobin...")
+        hb_value = get_hemoglobin(patient_id)
+    except Exception as e:
+        app.logger.error(f"Error getting hemoglobin: {e}")
+        hb_value = None
+    
+    try:
+        app.logger.info("Fetching platelet...")
+        platelet_value = get_platelet(patient_id)
+    except Exception as e:
+        app.logger.error(f"Error getting platelet: {e}")
+        platelet_value = None
+    
+    try:
+        app.logger.info("Fetching eGFR...")
+        egfr_value = get_egfr_value(patient_id, age, sex)
+    except Exception as e:
+        app.logger.error(f"Error getting eGFR: {e}")
+        egfr_value = None
+
     app.logger.info(f"Patient {patient_id} Labs: Hb={hb_value}, Platelet={platelet_value}, eGFR={egfr_value}")
 
     # 3. Get Condition, Medication, and Blood Transfusion Points AND DETAILS
@@ -2580,6 +2830,14 @@ def calculate_risk_ui_page():
         flash("Error occurred while calculating bleeding risk.", "danger")
         bleeding_risk_result = {}
 
+    # Log performance metrics if available (Phase 2)
+    if OPTIMIZATIONS_AVAILABLE and hasattr(fhirclient_optimizations, 'get_performance_summary'):
+        try:
+            perf_summary = fhirclient_optimizations.get_performance_summary()
+            app.logger.info(f"Performance metrics: {perf_summary}")
+        except Exception as e:
+            app.logger.warning(f"Could not retrieve performance metrics: {e}")
+
     # Prepare data for template
     calculation_details = {
         'age': age,
@@ -2596,7 +2854,8 @@ def calculate_risk_ui_page():
         'risk_params': RISK_PARAMS_CONFIG, 
         'score': bleeding_risk_result.get('score'),
         'category': bleeding_risk_result.get('category'),
-        'score_details': bleeding_risk_result.get('details', {})
+        'score_details': bleeding_risk_result.get('details', {}),
+        'optimization_used': 'Manual (Emergency Mode)'  # Fixed optimization info
     }
 
     # Get the actual label used for high risk from config to pass to template
@@ -2610,6 +2869,94 @@ def calculate_risk_ui_page():
                            calculation_details=calculation_details,
                            high_risk_label_for_template=actual_high_risk_label) # Pass the label
 # --- END UI Route ---
+
+# --- Import Performance Optimizer ---
+try:
+    from fhir_performance_optimizer import (
+        global_optimizer, track_performance, get_performance_stats, cleanup_cache,
+        FHIRPerformanceOptimizer
+    )
+    PERFORMANCE_OPTIMIZER_AVAILABLE = True
+    app.logger.info("FHIR Performance Optimizer successfully imported")
+except ImportError as e:
+    PERFORMANCE_OPTIMIZER_AVAILABLE = False
+    app.logger.warning(f"FHIR Performance Optimizer not available: {e}")
+# --- End Performance Optimizer Import ---
+
+# --- >> NEW: Performance monitoring routes << ---
+@app.route('/performance')
+@login_required
+def performance_dashboard():
+    """性能監控儀表板"""
+    if not PERFORMANCE_OPTIMIZER_AVAILABLE:
+        flash("性能監控模塊未啟用", "warning")
+        return redirect(url_for('main_app_page'))
+    
+    stats = get_performance_stats()
+    return render_template('performance_dashboard.html', 
+                           title="性能監控儀表板", 
+                           stats=stats)
+
+@app.route('/api/performance-stats')
+@login_required
+def api_performance_stats():
+    """API: 獲取性能統計數據"""
+    if not PERFORMANCE_OPTIMIZER_AVAILABLE:
+        return jsonify({"error": "Performance optimizer not available"}), 503
+    
+    stats = get_performance_stats()
+    return jsonify(stats)
+
+@app.route('/api/clear-cache', methods=['POST'])
+@login_required
+def api_clear_cache():
+    """API: 清理緩存"""
+    if not PERFORMANCE_OPTIMIZER_AVAILABLE:
+        return jsonify({"error": "Performance optimizer not available"}), 503
+    
+    try:
+        cleared_count = cleanup_cache()
+        app.logger.info(f"Cache cleared by user {current_user.id}, {cleared_count} entries removed")
+        return jsonify({
+            "success": True,
+            "cleared_count": cleared_count,
+            "message": f"Successfully cleared {cleared_count} cache entries"
+        })
+    except Exception as e:
+        app.logger.error(f"Error clearing cache: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# --- NEW: Optimized FHIR helper functions ---
+if PERFORMANCE_OPTIMIZER_AVAILABLE:
+    
+    @track_performance("get_patient_data_optimized", "Patient")
+    def get_patient_data_optimized():
+        """優化的病患數據獲取函數"""
+        return get_patient_data()
+    
+    @track_performance("get_observation_optimized", "Observation")
+    def get_observation_optimized(patient_id, loinc_code):
+        """優化的觀察值獲取函數"""
+        return get_observation(patient_id, loinc_code)
+    
+    @track_performance("get_comprehensive_patient_data", "Patient")
+    def get_comprehensive_patient_data_optimized(patient_id):
+        """使用批量處理獲取完整病患數據"""
+        fhir_server = _get_fhir_server_url()
+        headers = _get_fhir_request_headers()
+        
+        if not fhir_server or not headers:
+            app.logger.error("Cannot get comprehensive patient data: missing FHIR server or headers")
+            return None
+        
+        return global_optimizer.get_comprehensive_patient_data(fhir_server, headers, patient_id)
+    
+    @track_performance("calculate_bleeding_risk_optimized", "Risk")
+    def calculate_bleeding_risk_optimized(**kwargs):
+        """優化的出血風險計算"""
+        return calculate_bleeding_risk(**kwargs)
+
+# --- Modified: Enhanced calculate_risk_ui_page with performance optimization ---
 
 # --- Main Execution ---
 if __name__ == "__main__":

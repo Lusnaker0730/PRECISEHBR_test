@@ -159,7 +159,7 @@
      "final_risk_threshold": {
           "high_risk_min_score": 2,
           "high_risk_label": "高出血風險",
-          "low_risk_label": "未搜尋到高出血風險相關因子"
+          "low_risk_label": "低出血風險 - 可考慮標準抗血栓治療"
      },
      "value_set_rules": [
        {

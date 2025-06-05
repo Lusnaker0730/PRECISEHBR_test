@@ -1,132 +1,160 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - SMART FHIR App</title>
+    
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
     <style>
         body { 
             padding-top: 5rem; 
-            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .flash-messages .alert { 
             margin-bottom: 1rem; 
         }
         .navbar-brand {
-            font-weight: bold;
+            font-weight: 600;
         }
-        main.container, main.container-fluid {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            padding: 2rem;
-            margin-top: 1rem;
-            margin-bottom: 2rem;
+        .nav-link {
+            font-weight: 500;
         }
-        .card {
-            border: none;
-            border-radius: 10px;
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.25rem;
+        }
+        .container {
+            max-width: 1200px;
         }
         .btn {
-            border-radius: 25px;
+            border-radius: 0.375rem;
         }
-        .badge {
-            border-radius: 15px;
-        }
-        
-        /* Oracle Health PowerChart Embedded Styles */
-        body.embedded-powerchart {
-            padding-top: 1rem;
-            margin: 0;
-        }
-        
-        body.embedded-powerchart .navbar {
-            display: none; /* Hide navbar in embedded mode */
-        }
-        
-        body.embedded-powerchart main.container,
-        body.embedded-powerchart main.container-fluid {
-            margin-top: 0;
-            border-radius: 0;
-            box-shadow: none;
-            padding: 1rem;
-            height: calc(100vh - 2rem);
-            overflow-y: auto;
-        }
-        
-        /* Responsive design for various screen sizes */
-        @media (max-width: 768px) {
-            main.container, main.container-fluid {
-                padding: 1rem;
-                margin: 0.5rem;
-            }
-        }
-        
-        /* IE specific fixes */
-        @media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
-            .btn {
-                border-radius: 4px; /* Less rounded corners for IE */
-            }
+        .card {
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         }
     </style>
     
-    <!-- Oracle Health PowerChart Embedding Detection -->
-    <script src="{{ url_for('static', filename='smart_embed_detection.js') }}"></script>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top shadow">
-        <a class="navbar-brand" href="{{ url_for('index') }}">
-            <i class="fas fa-heartbeat mr-2"></i>
-            SMART FHIR App
-        </a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarsExampleDefault">
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('index') }}">
-                        <i class="fas fa-home mr-1"></i>Home
-                    </a>
-                </li>
-                {% if current_user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main_app_page') }}">
-                        <i class="fas fa-tachometer-alt mr-1"></i>Main App
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-            <ul class="navbar-nav ml-auto">
-                {% if current_user.is_authenticated %}
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-heartbeat text-danger"></i>
+                FHIR Bleeding Risk Calculator
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
                     <li class="nav-item">
-                        <span class="navbar-text">
-                            <i class="fas fa-user mr-1"></i>
-                            Logged in: {{ current_user.name }} | 
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
-                            <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home"></i> Home
                         </a>
                     </li>
-                {% else %}
-                    <!-- <li class="nav-item"><a class="nav-link" href="#">Login (EHR Launch)</a></li> -->
-                {% endif %}
-            </ul>
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main_app_page') }}">
+                                <i class="fas fa-tachometer-alt"></i> Main App
+                            </a>
+                        </li>
+                        {% if session.patient_id %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('calculate_risk_ui_page') }}">
+                                    <i class="fas fa-calculator"></i> Risk Calculator
+                                </a>
+                            </li>
+                        {% endif %}
+                        <!-- Performance Dashboard Link -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('performance_dashboard') }}">
+                                <i class="fas fa-chart-line"></i> Performance Monitoring
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <!-- User Menu -->
+                <ul class="navbar-nav ml-auto">
+                    {% if current_user.is_authenticated %}
+                        <!-- User Info Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-user-circle"></i>
+                                {{ current_user.name or 'User' }}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                                <h6 class="dropdown-header">
+                                    <i class="fas fa-info-circle"></i> User Information
+                                </h6>
+                                <span class="dropdown-item-text">
+                                    <small>
+                                        <i class="fas fa-envelope"></i> 
+                                        {{ current_user.email or 'Not provided' }}
+                                    </small>
+                                </span>
+                                {% if session.patient_id %}
+                                    <span class="dropdown-item-text">
+                                        <small>
+                                            <i class="fas fa-user-injured"></i> 
+                                            Patient: {{ session.patient_id }}
+                                        </small>
+                                    </span>
+                                {% endif %}
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{{ url_for('performance_dashboard') }}">
+                                    <i class="fas fa-chart-bar"></i> Performance Dashboard
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <span class="navbar-text">
+                                <i class="fas fa-info-circle"></i> 
+                                Please login through EHR system
+                            </span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <main role="main" class="container-fluid">
+    <!-- Main Content -->
+    <main role="main" class="container">
+        <!-- Flash Messages -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'check-circle' if category == 'success' else 'exclamation-circle' }} mr-2"></i>
+                            {% if category == 'success' %}
+                                <i class="fas fa-check-circle"></i>
+                            {% elif category == 'warning' %}
+                                <i class="fas fa-exclamation-triangle"></i>
+                            {% elif category == 'danger' or category == 'error' %}
+                                <i class="fas fa-exclamation-circle"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle"></i>
+                            {% endif %}
                             {{ message }}
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
@@ -136,11 +164,87 @@
                 {% endif %}
             {% endwith %}
         </div>
+        
+        <!-- Page Content -->
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted">
+                        <i class="fas fa-heartbeat text-danger"></i>
+                        SMART on FHIR Bleeding Risk Calculator
+                    </h6>
+                    <p class="text-muted small">
+                        Clinical Decision Support System based on ARC-HBR Standards
+                    </p>
+                </div>
+                <div class="col-md-6 text-right">
+                    <div class="d-flex justify-content-end align-items-center">
+                        {% if current_user.is_authenticated and PERFORMANCE_OPTIMIZER_AVAILABLE %}
+                            <span class="badge badge-success mr-2">
+                                <i class="fas fa-rocket"></i> Performance Optimization Enabled
+                            </span>
+                        {% endif %}
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i>
+                            {{ moment().format('YYYY-MM-DD HH:mm:ss') if moment else '' }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <small class="text-muted">
+                        Compliant with SMART on FHIR and CDS Hooks Standards | 
+                        <a href="https://www.hl7.org/fhir/" target="_blank" class="text-muted">FHIR R4</a> |
+                        <a href="https://cds-hooks.org/" target="_blank" class="text-muted">CDS Hooks 1.0</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- Performance Optimizer Status -->
+    {% if current_user.is_authenticated and PERFORMANCE_OPTIMIZER_AVAILABLE %}
+    <script>
+        console.log('🚀 FHIR Performance Optimizer is active');
+    </script>
+    {% endif %}
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+            
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+        
+        // Navigation active state
+        $(function() {
+            var current = location.pathname;
+            $('.navbar-nav .nav-link').each(function() {
+                var $this = $(this);
+                if ($this.attr('href') === current) {
+                    $this.addClass('active');
+                }
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
