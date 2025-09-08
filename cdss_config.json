@@ -1,12 +1,66 @@
 {
     "version": "2.1.0",
-    "guideline_source": "Based on PRECISE-DAPT 2017 consensus and validation studies",
+    "guideline_source": "Based on PRECISE-HBR bleeding risk assessment for PCI patients",
     "scoring_logic": {
-        "scoring_method": "PRECISE-DAPT",
-        "description": "5-item PRECISE-DAPT score for bleeding risk prediction",
-        "score_range": "0-100 points",
-        "high_risk_threshold": 25,
-        "interpretation": "≥25 points = High bleeding risk (consider shorter DAPT duration)"
+        "scoring_method": "PRECISE-HBR",
+        "description": "7-item PRECISE-HBR score for bleeding risk prediction in PCI patients",
+        "score_range": "0-50+ points",
+        "high_risk_threshold": 23,
+        "very_high_risk_threshold": 27,
+        "interpretation": "≤22 = non-high risk (<4%), 23-26 = high risk (4-6%), ≥27 = very high risk (≥6%)"
+    },
+    "precise_hbr_parameters": {
+        "age": {
+            "description": "Patient age in years",
+            "calculation_type": "direct_value",
+            "min_value": 20,
+            "max_value": 100,
+            "score_contribution": "Age-based scoring (exact values need supplemental data)"
+        },
+        "hemoglobin": {
+            "description": "Hemoglobin level in g/dL",
+            "calculation_type": "inverse_value",
+            "min_value": 8.0,
+            "max_value": 18.0,
+            "score_contribution": "Lower Hb = higher bleeding risk"
+        },
+        "egfr": {
+            "description": "Estimated glomerular filtration rate in mL/min/1.73m²",
+            "calculation_type": "inverse_value",
+            "min_value": 15,
+            "max_value": 150,
+            "score_contribution": "Lower eGFR = higher bleeding risk"
+        },
+        "white_blood_cell_count": {
+            "description": "White blood cell count in ×10⁹/L",
+            "calculation_type": "direct_value",
+            "min_value": 2.0,
+            "max_value": 25.0,
+            "enabled": true,
+            "score_contribution": "Higher WBC = higher bleeding risk"
+        },
+        "previous_bleeding": {
+            "description": "History of spontaneous bleeding",
+            "calculation_type": "binary",
+            "score_contribution": "Yes = significant points added"
+        },
+        "oral_anticoagulation": {
+            "description": "Long-term oral anticoagulation therapy",
+            "calculation_type": "binary",
+            "score_contribution": "Warfarin, DOACs, etc. increase bleeding risk"
+        },
+        "arc_hbr_factors": {
+            "description": "ARC-HBR bleeding risk factors",
+            "calculation_type": "binary",
+            "factors": [
+                "thrombocytopenia",
+                "chronic_bleeding_diathesis", 
+                "active_malignancy",
+                "liver_cirrhosis_portal_hypertension",
+                "nsaids_corticosteroids"
+            ],
+            "score_contribution": "Presence of ≥1 factor increases risk"
+        }
     },
     "precise_dapt_parameters": {
         "age": {
@@ -154,10 +208,18 @@
             "2160-0",
             "33914-3"
         ],
+        "egfr_loinc_codes": [
+            "33914-3",
+            "62238-1"
+        ],
         "white_blood_cell_loinc_codes": [
             "26464-8",
             "6690-2",
             "33256-9"
+        ],
+        "platelet_loinc_codes": [
+            "26515-7",
+            "33735-5"
         ],
         "unit_conversions": {
             "hemoglobin": {
@@ -167,34 +229,31 @@
         }
     },
     "risk_interpretation": {
-        "very_low_risk": {
-            "score_range": [0, 7],
-            "label": "Very Low Bleeding Risk",
-            "recommendation": "Standard or extended DAPT duration (12-24 months)",
-            "color": "green"
-        },
-        "low_risk": {
-            "score_range": [8, 15], 
-            "label": "Low Bleeding Risk",
-            "recommendation": "Standard DAPT duration (12 months)",
-            "color": "yellow"
-        },
-        "moderate_risk": {
-            "score_range": [16, 24],
-            "label": "Moderate Bleeding Risk", 
-            "recommendation": "Consider standard DAPT duration with careful monitoring",
-            "color": "orange"
+        "non_high_risk": {
+            "score_range": [0, 22],
+            "label": "Not high bleeding risk",
+            "recommendation": "1-year risk of major bleeding: 0.89%",
+            "color": "green",
+            "bleeding_risk_percent": "0.89%"
         },
         "high_risk": {
-            "score_range": [25, 100],
-            "label": "High Bleeding Risk",
-            "recommendation": "Consider shorter DAPT duration (3-6 months)",
-            "color": "red"
+            "score_range": [23, 26],
+            "label": "HBR (score 23-26)", 
+            "recommendation": "1-year risk of major bleeding: 4%",
+            "color": "orange",
+            "bleeding_risk_percent": "4%"
+        },
+        "very_high_risk": {
+            "score_range": [27, 100],
+            "label": "Very HBR (score ≥27)",
+            "recommendation": "1-year risk of major bleeding: 6%",
+            "color": "red",
+            "bleeding_risk_percent": "6%"
         }
     },
     "clinical_decision_support": {
-        "high_risk_threshold": 25,
-        "moderate_risk_threshold": 16,
+        "high_risk_threshold": 23,
+        "very_high_risk_threshold": 27,
         "dapt_recommendations": {
             "high_risk": {
                 "duration": "3-6 months",

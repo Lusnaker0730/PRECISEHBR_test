@@ -51,13 +51,12 @@ def configure_security_headers(app):
         # 內容安全政策
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://stackpath.bootstrapcdn.com https://code.jquery.com https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://stackpath.bootstrapcdn.com; "
-            "img-src 'self' data: https:; "
-            "connect-src 'self' https://*.cerner.com https://*.epic.com; "
-            "frame-ancestors 'self' https://*.cerner.com https://*.epic.com; "
-            "base-uri 'self'; "
-            "form-action 'self'"
+            "script-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com; "
+            "style-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com; "
+            "font-src cdnjs.cloudflare.com; "
+            "img-src 'self' data:; "
+            "frame-ancestors 'self'; "
+            "form-action 'self'; "
         )
         
         response.headers.update({
@@ -357,5 +356,6 @@ if __name__ == "__main__":
     app = create_production_app()
     
     # 啟動應用
+    host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, debug=False) 
+    app.run(host=host, port=port, debug=False)

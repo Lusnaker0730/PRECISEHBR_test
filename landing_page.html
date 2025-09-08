@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRECISE-DAPT Bleeding Risk Calculator - SMART on FHIR Clinical Decision Support</title>
-    <meta name="description" content="Advanced bleeding risk assessment tool for patients on dual antiplatelet therapy using the validated PRECISE-DAPT score, integrated with EHR systems.">
+    <title>PRECISE-HBR Bleeding Risk Calculator - SMART on FHIR Clinical Decision Support</title>
+    <meta name="description" content="Advanced bleeding risk assessment tool for high bleeding risk patients undergoing PCI using the validated PRECISE-HBR score, integrated with EHR systems.">
     
     <style>
         * {
@@ -17,7 +17,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             min-height: 100vh;
         }
         
@@ -29,283 +29,628 @@
         
         .header {
             background: white;
-            border-radius: 10px;
-            padding: 40px;
+            border-radius: 15px;
+            padding: 50px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #dc3545, #fd7e14, #ffc107);
+        }
+        
+        .logo-container {
+            margin-bottom: 30px;
         }
         
         .logo-svg {
             margin: 0 auto 20px;
             display: block;
+            filter: drop-shadow(0 4px 8px rgba(220, 53, 69, 0.3));
         }
         
         h1 {
-            color: #2c3e50;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            color: #dc3545;
+            font-size: 3em;
+            margin-bottom: 15px;
             font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .subtitle {
-            color: #7f8c8d;
-            font-size: 1.2em;
+            font-size: 1.3em;
+            color: #6c757d;
             margin-bottom: 20px;
+            font-weight: 300;
         }
         
-        .badge {
+        .description {
+            font-size: 1.1em;
+            color: #495057;
+            max-width: 800px;
+            margin: 0 auto 30px;
+        }
+        
+        .cta-buttons {
+            margin-top: 30px;
+        }
+        
+        .btn {
             display: inline-block;
-            background: #27ae60;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: 600;
-            margin: 5px;
-        }
-        
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .card-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-            font-weight: bold;
-        }
-        
-        .clinical-icon { background: linear-gradient(45deg, #e74c3c, #c0392b); }
-        .tech-icon { background: linear-gradient(45deg, #3498db, #2980b9); }
-        .integration-icon { background: linear-gradient(45deg, #27ae60, #229954); }
-        .features-icon { background: linear-gradient(45deg, #f39c12, #e67e22); }
-        
-        h2 {
-            color: #2c3e50;
-            font-size: 1.8em;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        
-        .card p {
-            color: #555;
-            margin-bottom: 15px;
-        }
-        
-        .risk-levels {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .risk-level {
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            color: white;
-            font-weight: 600;
-        }
-        
-        .low-risk { background: linear-gradient(45deg, #27ae60, #229954); }
-        .moderate-risk { background: linear-gradient(45deg, #f39c12, #e67e22); }
-        .high-risk { background: linear-gradient(45deg, #e74c3c, #c0392b); }
-        
-        .cta-section {
-            background: white;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
             padding: 15px 30px;
-            border-radius: 30px;
+            margin: 10px;
+            border-radius: 50px;
             text-decoration: none;
             font-weight: 600;
             font-size: 1.1em;
-            margin: 10px;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
-        .cta-button:hover {
+        .btn-primary {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #dc3545;
+            border: 2px solid #dc3545;
+        }
+        
+        .btn-secondary:hover {
+            background: #dc3545;
+            color: white;
             transform: translateY(-2px);
         }
         
-        ul {
-            padding-left: 20px;
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
         }
         
-        li {
-            margin-bottom: 8px;
-            color: #555;
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #dc3545, #fd7e14);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+        
+        .feature-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .feature-description {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+        
+        .clinical-evidence {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .clinical-evidence h2 {
+            color: #dc3545;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .evidence-item {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .evidence-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #dc3545;
+            display: block;
+        }
+        
+        .evidence-label {
+            color: #495057;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        .integration-section {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .integration-section h2 {
+            color: #dc3545;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .workflow-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        
+        .step {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: 0 auto 15px;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .step-description {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #dc3545;
+            font-size: 2em;
+            font-weight: 700;
+        }
+        
+        .risk-stratification {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .risk-stratification h2 {
+            color: #dc3545;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .risk-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .risk-category {
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .risk-category::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            opacity: 0.9;
+        }
+        
+        .risk-category > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .non-hbr {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        
+        .hbr {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: #212529;
+        }
+        
+        .very-hbr {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+        
+        .risk-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .risk-score {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        
+        .risk-percentage {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .footer {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 40px;
+        }
+        
+        .footer-links {
+            margin-bottom: 20px;
+        }
+        
+        .footer-links a {
+            color: #dc3545;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 500;
+        }
+        
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer-text {
+            color: #6c757d;
+            font-size: 0.9em;
         }
         
         @media (max-width: 768px) {
             .container {
-                padding: 10px;
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
             }
             
             h1 {
-                font-size: 2em;
+                font-size: 2.2em;
             }
             
-            .risk-levels {
-                grid-template-columns: 1fr;
+            .workflow-steps {
+                flex-direction: column;
+            }
+            
+            .step:not(:last-child)::after {
+                content: '↓';
+                right: 50%;
+                top: auto;
+                bottom: -30px;
+                transform: translateX(50%);
+            }
+            
+            .btn {
+                display: block;
+                margin: 10px 0;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header Section -->
         <div class="header">
-            <!-- Professional SVG Logo -->
-            <div style="margin-bottom: 20px;">
-                <svg width="96" height="96" viewBox="0 0 256 256">
-                    <circle cx="128" cy="128" r="118" fill="#f0f9ff" stroke="#2563eb" stroke-width="4"/>
-                    <path d="M 50 128 A 78 78 0 0 1 206 128" fill="none" stroke-width="12" stroke="url(#landingGrad)" stroke-linecap="round"/>
-                    <circle cx="65" cy="145" r="5" fill="#10b981"/>
-                    <circle cx="128" cy="55" r="5" fill="#f59e0b"/>
-                    <circle cx="191" cy="145" r="5" fill="#ef4444"/>
-                    <path d="M128 85 C118 75, 100 75, 100 92 C100 108, 128 135, 128 135 C128 135, 156 108, 156 92 C156 75, 138 75, 128 85 Z" fill="#dc2626" stroke="#b91c1c" stroke-width="2"/>
-                    <rect x="110" y="150" width="36" height="4" fill="#3b82f6" rx="2"/>
-                    <rect x="110" y="158" width="28" height="4" fill="#3b82f6" rx="2"/>
-                    <rect x="110" y="166" width="32" height="4" fill="#3b82f6" rx="2"/>
-                    <polygon points="90,190 105,185 105,195" fill="#0ea5e9"/>
-                    <rect x="107" y="187" width="20" height="6" fill="#0ea5e9" rx="1"/>
-                    <polygon points="129,185 144,190 129,195" fill="#0ea5e9"/>
+            <div class="logo-container">
+                <svg class="logo-svg" width="80" height="80" viewBox="0 0 256 256">
+                    <circle cx="128" cy="128" r="118" fill="#fff3cd" stroke="#dc3545" stroke-width="8"/>
+                    <path d="M 70 128 A 58 58 0 0 1 186 128" fill="none" stroke-width="16" stroke="url(#headerGrad)" stroke-linecap="round"/>
+                    <circle cx="85" cy="145" r="8" fill="#28a745"/>
+                    <circle cx="128" cy="75" r="8" fill="#ffc107"/>
+                    <circle cx="171" cy="145" r="8" fill="#dc3545"/>
+                    <path d="M128 90 C115 77, 95 77, 95 95 C95 115, 128 145, 128 145 C128 145, 161 115, 161 95 C161 77, 141 77, 128 90 Z" fill="#dc3545"/>
                     <defs>
-                        <linearGradient id="landingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#10b981"/>
-                            <stop offset="50%" style="stop-color:#f59e0b"/>
-                            <stop offset="100%" style="stop-color:#ef4444"/>
+                        <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#28a745"/>
+                            <stop offset="50%" style="stop-color:#ffc107"/>
+                            <stop offset="100%" style="stop-color:#dc3545"/>
                         </linearGradient>
                     </defs>
                 </svg>
             </div>
-            <h1>PRECISE-DAPT Bleeding Risk Calculator</h1>
-            <p class="subtitle">Advanced Clinical Decision Support for Dual Antiplatelet Therapy</p>
-            <div>
-                <span class="badge">SMART on FHIR</span>
-                <span class="badge">CDS Hooks</span>
-                <span class="badge">EHR Integrated</span>
-                <span class="badge">Evidence-Based</span>
+            
+            <h1>PRECISE-HBR Bleeding Risk Calculator</h1>
+            <p class="subtitle">Advanced High Bleeding Risk Assessment for PCI Patients</p>
+            <p class="description">
+                The PRECISE-HBR calculator provides <strong>evidence-based bleeding risk assessment</strong> for patients undergoing percutaneous coronary intervention (PCI) who are at high bleeding risk, helping clinicians optimize dual antiplatelet therapy duration.
+            </p>
+            
+            <div class="cta-buttons">
+                <a href="/" class="btn btn-primary">🚀 Launch Calculator</a>
+                <a href="/docs" class="btn btn-secondary">📚 Documentation</a>
             </div>
         </div>
 
-        <div class="content-grid">
-            <div class="card">
-                <div class="card-icon clinical-icon">🏥</div>
-                <h2>Clinical Purpose</h2>
-                <p>The PRECISE-DAPT calculator provides <strong>evidence-based bleeding risk assessment</strong> for patients on dual antiplatelet therapy (DAPT).</p>
-                <ul>
-                    <li><strong>Validated Risk Score:</strong> Based on the PRECISE-DAPT study</li>
-                    <li><strong>Patient Safety:</strong> Identifies high bleeding risk patients</li>
-                    <li><strong>Treatment Optimization:</strong> Guides DAPT duration decisions</li>
-                    <li><strong>Evidence-Based:</strong> Published in Circulation 2017</li>
-                </ul>
+        <!-- Key Features -->
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-title">ARC-HBR Compliant</div>
+                <div class="feature-description">
+                    Based on Academic Research Consortium for High Bleeding Risk (ARC-HBR) criteria with validated scoring methodology for standardized risk assessment.
+                </div>
             </div>
-
-            <div class="card">
-                <div class="card-icon tech-icon">⚡</div>
-                <h2>Smart Integration</h2>
-                <p>Seamlessly integrates with your existing EHR workflow using modern healthcare standards.</p>
-                <ul>
-                    <li><strong>SMART on FHIR:</strong> Standard-compliant EHR integration</li>
-                    <li><strong>CDS Hooks:</strong> Real-time clinical alerts</li>
-                    <li><strong>Automated Data:</strong> No manual data entry</li>
-                    <li><strong>Workflow Integration:</strong> Launches from patient chart</li>
-                </ul>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔬</div>
+                <div class="feature-title">Evidence-Based</div>
+                <div class="feature-description">
+                    Validated across multiple international cohorts with C-statistic 0.68-0.72, providing reliable discrimination for clinical decision-making.
+                </div>
             </div>
-
-            <div class="card">
-                <div class="card-icon integration-icon">🔄</div>
-                <h2>How It Works</h2>
-                <p>Automatically calculates bleeding risk using patient data from your EHR system.</p>
-                <ul>
-                    <li><strong>Step 1:</strong> Launch from patient chart in EHR</li>
-                    <li><strong>Step 2:</strong> Automatic data extraction</li>
-                    <li><strong>Step 3:</strong> PRECISE-DAPT score calculation</li>
-                    <li><strong>Step 4:</strong> Risk stratification and recommendations</li>
-                </ul>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">Real-Time Integration</div>
+                <div class="feature-description">
+                    SMART on FHIR compatible with seamless EHR integration, automated data extraction, and instant risk calculation at point of care.
+                </div>
             </div>
-
-            <div class="card">
-                <div class="card-icon features-icon">🎯</div>
-                <h2>Key Features</h2>
-                <p>Comprehensive bleeding risk assessment with actionable recommendations.</p>
-                <ul>
-                    <li><strong>Real-time Calculation:</strong> Instant risk assessment</li>
-                    <li><strong>Clinical Alerts:</strong> High-risk notifications</li>
-                    <li><strong>Detailed Reporting:</strong> Component breakdown</li>
-                    <li><strong>Treatment Guidance:</strong> Evidence-based recommendations</li>
-                </ul>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">7-Parameter Model</div>
+                <div class="feature-description">
+                    Comprehensive assessment using age, hemoglobin, eGFR, WBC count, previous bleeding, oral anticoagulation, and ARC-HBR factors.
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <div class="feature-title">Clinical Decision Support</div>
+                <div class="feature-description">
+                    Provides actionable recommendations for DAPT duration optimization, helping balance bleeding risk with ischemic protection.
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Secure & Compliant</div>
+                <div class="feature-description">
+                    HIPAA compliant with OAuth2 authentication, secure data handling, and no persistent patient data storage for privacy protection.
+                </div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>🎯 PRECISE-DAPT Risk Stratification</h2>
-            <p>The PRECISE-DAPT score uses 5 clinical parameters to stratify bleeding risk:</p>
+        <!-- Clinical Evidence -->
+        <div class="clinical-evidence">
+            <h2>🔬 Clinical Evidence & Validation</h2>
+            <p style="text-align: center; font-size: 1.1em; color: #6c757d; margin-bottom: 20px;">
+                PRECISE-HBR has been extensively validated across diverse patient populations and healthcare systems worldwide.
+            </p>
             
-            <div class="risk-levels">
-                <div class="risk-level low-risk">
-                    <strong>Low Risk</strong><br>
-                    Score: 0-15<br>
-                    Standard DAPT (12 months)
+            <div class="evidence-grid">
+                <div class="evidence-item">
+                    <span class="evidence-number">14,000+</span>
+                    <div class="evidence-label">Patients in Development Cohort</div>
                 </div>
-                <div class="risk-level moderate-risk">
-                    <strong>Moderate Risk</strong><br>
-                    Score: 16-24<br>
-                    Standard DAPT with monitoring
+                <div class="evidence-item">
+                    <span class="evidence-number">0.68-0.72</span>
+                    <div class="evidence-label">C-statistic Performance</div>
                 </div>
-                <div class="risk-level high-risk">
-                    <strong>High Risk</strong><br>
-                    Score: ≥25<br>
-                    Consider shorter DAPT (3-6 months)
+                <div class="evidence-item">
+                    <span class="evidence-number">Multiple</span>
+                    <div class="evidence-label">International Validations</div>
+                </div>
+                <div class="evidence-item">
+                    <span class="evidence-number">1 Year</span>
+                    <div class="evidence-label">Follow-up Period</div>
                 </div>
             </div>
             
-            <p style="margin-top: 20px;"><strong>Components:</strong> Age (granular scoring), Hemoglobin (inverse scaling), Creatinine Clearance, White Blood Cell Count, Prior Bleeding History (25 points if present)</p>
-        </div>
-
-        <div class="cta-section">
-            <h2>🚀 Ready to Enhance Clinical Decision Making?</h2>
-            <p style="margin-bottom: 30px;">Integrate evidence-based bleeding risk assessment into your EHR workflow.</p>
-            
-            <a href="/launch/cerner-sandbox" class="cta-button">Try Demo</a>
-            <a href="/logo" target="_blank" class="cta-button">View Logo & Branding</a>
-            <a href="mailto:contact@example.com" class="cta-button">Contact Sales</a>
-            
-            <p style="margin-top: 30px; color: #7f8c8d;">
-                <strong>Compatible with:</strong> Cerner and other SMART on FHIR enabled EHRs
+            <p style="text-align: center; margin-top: 30px; font-style: italic; color: #495057;">
+                "PRECISE-HBR demonstrates superior discrimination compared to clinical judgment alone, with consistent performance across different populations and healthcare systems."
             </p>
         </div>
+
+        <!-- Integration Workflow -->
+        <div class="integration-section">
+            <h2>🔄 Clinical Workflow Integration</h2>
+            <p style="text-align: center; font-size: 1.1em; color: #6c757d; margin-bottom: 20px;">
+                Seamlessly integrate PRECISE-HBR assessment into your clinical workflow with automated data extraction and real-time decision support.
+            </p>
+            
+            <div class="workflow-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Patient Selection</div>
+                    <div class="step-description">Identify PCI patients requiring DAPT duration optimization</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Data Extraction</div>
+                    <div class="step-description">Automated FHIR-based extraction of clinical parameters</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Risk Calculation</div>
+                    <div class="step-description">PRECISE-HBR score calculation with validation</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Clinical Decision</div>
+                    <div class="step-description">Evidence-based DAPT duration recommendations</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Stratification -->
+        <div class="risk-stratification">
+            <h2>🎯 PRECISE-HBR Risk Stratification</h2>
+            <p style="text-align: center; font-size: 1.1em; color: #6c757d; margin-bottom: 20px;">
+                The PRECISE-HBR score stratifies patients into three validated risk categories based on 1-year major bleeding risk.
+            </p>
+            
+            <div class="risk-categories">
+                <div class="risk-category non-hbr">
+                    <div class="risk-title">Non-HBR</div>
+                    <div class="risk-score">Score ≤22</div>
+                    <div class="risk-percentage">1-Year Bleeding Risk: <4%</div>
+                    <p style="margin-top: 15px; font-size: 0.9em;">Standard DAPT duration appropriate with routine monitoring</p>
+                </div>
+                
+                <div class="risk-category hbr">
+                    <div class="risk-title">High Bleeding Risk</div>
+                    <div class="risk-score">Score 23-26</div>
+                    <div class="risk-percentage">1-Year Bleeding Risk: 4-6%</div>
+                    <p style="margin-top: 15px; font-size: 0.9em;">Consider shorter DAPT duration with careful monitoring</p>
+                </div>
+                
+                <div class="risk-category very-hbr">
+                    <div class="risk-title">Very High Bleeding Risk</div>
+                    <div class="risk-score">Score ≥27</div>
+                    <div class="risk-percentage">1-Year Bleeding Risk: ≥6%</div>
+                    <p style="margin-top: 15px; font-size: 0.9em;">Shortest appropriate DAPT duration with enhanced monitoring</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-links">
+                <a href="/">🚀 Launch Calculator</a>
+                <a href="/docs">📚 Documentation</a>
+                <a href="/tradeoff_analysis">📊 Risk Trade-off Analysis</a>
+            </div>
+            
+            <div class="footer-text">
+                <p><strong>PRECISE-HBR Bleeding Risk Calculator</strong> | Version 5.0 | SMART on FHIR Compatible</p>
+                <p style="margin-top: 10px;">
+                    This tool is for educational and clinical decision support purposes. Always consult with qualified healthcare professionals for patient care decisions.
+                </p>
+                <p style="margin-top: 15px; font-size: 0.8em;">
+                    © 2024 PRECISE-HBR Clinical Decision Support Tool. Based on Academic Research Consortium for High Bleeding Risk (ARC-HBR) criteria and validated clinical evidence.
+                </p>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add subtle animations on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe feature cards for animation
+        document.querySelectorAll('.feature-card, .evidence-item, .step').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
 </body>
 </html> 

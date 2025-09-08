@@ -1,0 +1,207 @@
+{
+    "modelInfo": {
+        "name": "ARC-HBR Trade-off Model",
+        "version": "1.0.0",
+        "description": "A model to assess the trade-off between bleeding and thrombotic risks in patients with high bleeding risk (HBR) after percutaneous coronary intervention (PCI), based on the paper 'Assessing the Risks of Bleeding vs Thrombotic Events in Patients at High Bleeding Risk After Coronary Stent Implantation: The ARC-High Bleeding Risk Trade-off Model' from JAMA Cardiology.",
+        "documentation": "tradeoff_model.md"
+    },
+    "criteria": {
+        "major": [
+            {
+                "id": "major-ich",
+                "description": "Anticipated use of long-term OAC",
+                "details": "Long-term use of oral anticoagulants (OAC) is a major risk factor for bleeding.",
+                "weight": 1
+            },
+            {
+                "id": "major-ckd",
+                "description": "Severe or end-stage chronic kidney disease (eGFR < 30 mL/min)",
+                "details": "eGFR significantly below 30 mL/min indicates severe kidney impairment.",
+                "weight": 1
+            },
+            {
+                "id": "major-anemia",
+                "description": "Hemoglobin < 11 g/dL",
+                "details": "Low hemoglobin levels are a strong indicator of bleeding risk.",
+                "weight": 1
+            },
+            {
+                "id": "major-bleeding",
+                "description": "Spontaneous bleeding requiring hospitalization or transfusion in the past 6 months",
+                "details": "Recent severe bleeding events are a direct indicator of future risk.",
+                "weight": 1
+            },
+            {
+                "id": "major-thrombocytopenia",
+                "description": "Platelet count < 100 x 10^9/L",
+                "details": "Low platelet count impairs clotting and increases bleeding risk.",
+                "weight": 1
+            },
+            {
+                "id": "major-cirrhosis",
+                "description": "Chronic liver disease (cirrhosis with portal hypertension)",
+                "details": "Liver disease affects clotting factor production.",
+                "weight": 1
+            },
+            {
+                "id": "major-cancer",
+                "description": "Active malignancy within the last 12 months",
+                "details": "Cancer and its treatments can increase bleeding risk.",
+                "weight": 1
+            },
+            {
+                "id": "major-stroke",
+                "description": "Previous spontaneous intracranial hemorrhage or stroke",
+                "details": "A history of intracranial bleeding or stroke is a critical risk factor.",
+                "weight": 1
+            }
+        ],
+        "minor": [
+            {
+                "id": "minor-age",
+                "description": "Age ≥ 75 years",
+                "details": "Advanced age is a general risk factor.",
+                "weight": 1
+            },
+            {
+                "id": "minor-ckd",
+                "description": "Moderate chronic kidney disease (eGFR 30-59 mL/min)",
+                "details": "Moderate kidney impairment contributes to risk.",
+                "weight": 1
+            },
+            {
+                "id": "minor-anemia",
+                "description": "Hemoglobin 11-12.9 g/dL (male) or 11-11.9 g/dL (female)",
+                "details": "Mildly low hemoglobin levels are a minor risk factor.",
+                "weight": 1
+            },
+            {
+                "id": "minor-bleeding",
+                "description": "Spontaneous bleeding requiring hospitalization or transfusion in the past 12 months",
+                "details": "A less recent history of severe bleeding.",
+                "weight": 1
+            },
+            {
+                "id": "minor-nsaid",
+                "description": "Chronic use of NSAIDs or steroids",
+                "details": "These medications can increase gastrointestinal bleeding risk.",
+                "weight": 1
+            },
+            {
+                "id": "minor-stroke",
+                "description": "Ischemic stroke > 6 months ago",
+                "details": "A distant history of ischemic stroke.",
+                "weight": 1
+            }
+        ]
+    },
+    "tradeoffModel": {
+        "bleedingEvents": {
+            "description": "Predictors for BARC (Bleeding Academic Research Consortium) types 3-5 bleeding events.",
+            "c-statistic": 0.68,
+            "predictors": [
+                {
+                    "factor": "age_ge_65",
+                    "description": "Age ≥ 65 years",
+                    "hazardRatio": 1.50
+                },
+                {
+                    "factor": "liver_cancer_surgery",
+                    "description": "Liver disease, cancer, or surgery",
+                    "hazardRatio": 1.63
+                },
+                {
+                    "factor": "copd",
+                    "description": "Chronic obstructive pulmonary disease (COPD)",
+                    "hazardRatio": 1.39
+                },
+                {
+                    "factor": "smoker",
+                    "description": "Current smoker",
+                    "hazardRatio": 1.47
+                },
+                {
+                    "factor": "hemoglobin_11_12.9",
+                    "description": "Hemoglobin 11-12.9 g/dL",
+                    "hazardRatio": 1.69
+                },
+                {
+                    "factor": "hemoglobin_lt_11",
+                    "description": "Hemoglobin < 11 g/dL",
+                    "hazardRatio": 3.99
+                },
+                {
+                    "factor": "egfr_lt_30",
+                    "description": "eGFR < 30 mL/min",
+                    "hazardRatio": 1.43
+                },
+                {
+                    "factor": "complex_pci",
+                    "description": "Complex PCI procedure",
+                    "hazardRatio": 1.32
+                },
+                {
+                    "factor": "oac_discharge",
+                    "description": "Oral anticoagulant (OAC) at discharge",
+                    "hazardRatio": 2.00
+                }
+            ]
+        },
+        "thromboticEvents": {
+            "description": "Predictors for myocardial infarction (MI) and/or stent thrombosis (ST).",
+            "c-statistic": 0.69,
+            "predictors": [
+                {
+                    "factor": "diabetes",
+                    "description": "Diabetes",
+                    "hazardRatio": 1.56
+                },
+                {
+                    "factor": "prior_mi",
+                    "description": "Prior myocardial infarction",
+                    "hazardRatio": 1.89
+                },
+                {
+                    "factor": "smoker",
+                    "description": "Current smoker",
+                    "hazardRatio": 1.48
+                },
+                {
+                    "factor": "nstemi_stemi",
+                    "description": "NSTEMI or STEMI presentation",
+                    "hazardRatio": 1.82
+                },
+                {
+                    "factor": "hemoglobin_11_12.9",
+                    "description": "Hemoglobin 11-12.9 g/dL",
+                    "hazardRatio": 1.27
+                },
+                {
+                    "factor": "hemoglobin_lt_11",
+                    "description": "Hemoglobin < 11 g/dL",
+                    "hazardRatio": 1.50
+                },
+                {
+                    "factor": "egfr_30_59",
+                    "description": "eGFR 30-59 mL/min",
+                    "hazardRatio": 1.30
+                },
+                {
+                    "factor": "egfr_lt_30",
+                    "description": "eGFR < 30 mL/min",
+                    "hazardRatio": 1.69
+                },
+                {
+                    "factor": "complex_pci",
+                    "description": "Complex PCI procedure",
+                    "hazardRatio": 1.50
+                },
+                {
+                    "factor": "bms",
+                    "description": "Use of bare-metal stent (BMS)",
+                    "hazardRatio": 1.53
+                }
+            ]
+        }
+    }
+} 

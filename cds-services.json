@@ -2,9 +2,9 @@
   "services": [
     {
       "hook": "medication-prescribe",
-      "id": "dapt_bleeding_risk_alert",
-      "title": "DAPT High Bleeding Risk Alert",
-      "description": "Alert for patients on dual antiplatelet therapy (DAPT) with high bleeding risk (PRECISE-DAPT >= 25)",
+      "id": "precise_hbr_bleeding_risk_alert",
+      "title": "PRECISE-HBR High Bleeding Risk Alert",
+      "description": "Alert for patients undergoing PCI with high bleeding risk (PRECISE-HBR >= 23) requiring DAPT optimization",
       "prefetch": {
         "patient": "Patient/{{context.patientId}}",
         "medications": "MedicationRequest?patient={{context.patientId}}&status=active&_count=50",
@@ -17,9 +17,9 @@
     },
     {
       "hook": "patient-view",
-      "id": "dapt_bleeding_risk_patient_view",
-      "title": "DAPT Bleeding Risk Assessment - Patient View",
-      "description": "Display bleeding risk assessment for patients on dual antiplatelet therapy in patient view",
+      "id": "precise_hbr_patient_view",
+      "title": "PRECISE-HBR Bleeding Risk Assessment - Patient View",
+      "description": "Display PRECISE-HBR bleeding risk assessment for PCI patients in patient view",
       "prefetch": {
         "patient": "Patient/{{context.patientId}}",
         "medications": "MedicationRequest?patient={{context.patientId}}&status=active&_count=50",

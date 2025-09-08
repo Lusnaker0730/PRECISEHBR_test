@@ -1,28 +1,20 @@
-Flask==3.1.0
-Flask-Session==0.5.0
-gunicorn==21.2.0
-requests==2.31.0
-python-dateutil==2.8.2
-# Remove version pinning for Werkzeug to let Flask decide the compatible version
-Werkzeug>=3.1
-Flask-Cors==5.0.0
+Flask==3.0.3
+requests==2.32.3
+requests-oauthlib==1.3.1
+gunicorn==23.0.0
+flask-cors==6.0.0
+flask-session==0.5.0
 python-dotenv==1.0.0
-Authlib>=1.2.1
-Flask-Login>=0.6.3
-PyJWT[crypto]>=2.8.0
+PyJWT==2.8.0
+cryptography==44.0.1
+python-dateutil==2.8.2
+fhirclient==4.1.0
+Flask-Talisman
+# Security
+bandit==1.7.5
+pip-audit==2.7.2
+Flask-Talisman==1.1.0
+google-cloud-secret-manager==2.16.2
 
-# SMART on FHIR Client (Phase 1 Optimization)
-fhirclient>=4.3.1
-
-# Production Security Dependencies
-redis>=4.6.0
-psutil>=5.9.0
-certifi>=2023.7.22
-
-# Optional: Enhanced monitoring and logging
-# sentry-sdk[flask]>=1.32.0
-# prometheus-flask-exporter>=0.23.0
-
-# Development and Testing (comment out in production)
-# pytest>=7.4.0
-# pytest-flask>=1.2.1
+# Testing
+locust==2.24.0

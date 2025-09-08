@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Bleeding vs. Thrombosis Trade-off Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+        }
+        .factor-list { max-height: 300px; overflow-y: auto; }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.9); display: flex;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .loading-spinner { text-align: center; }
+        .spinner-border { width: 3rem; height: 3rem; }
+        .content-hidden { opacity: 0.3; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+            <div class="mt-3"><h5>Loading Trade-off Analysis...</h5><p class="text-muted">Please wait...</p></div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4" id="main-content">
+        <h3 class="text-center">Risk Trade-off Analysis (Bleeding vs. Ischemic Risk)</h3>
+        <p class="text-center text-muted">Patient ID: {{ patient_id }}</p>
+        
+        <div class="row justify-content-center" id="content-row" style="visibility: visible;">
+            <div class="col-md-4" id="chart-column">
+                <div class="chart-container">
+                    <canvas id="tradeoffChart"></canvas>
+                </div>
+                <div id="chart-legend" class="mt-3">
+                    <p><span style="color: #87CEEB;">■</span> Blue Area: Ischemic/thrombotic risk is higher than bleeding risk.</p>
+                    <p><span style="color: #DCDCDC;">■</span> Gray Area: Considering associated mortality, bleeding and ischemic risks can be considered equivalent.</p>
+                    <p><span style="color: #FFDB58;">■</span> Yellow Area: Considering associated mortality, bleeding risk is higher than ischemic risk.</p>
+                </div>
+            </div>
+            <div class="col-md-5" id="risk-factors-column">
+                <div class="card mb-3">
+                    <div class="card-header bg-danger text-white">Bleeding Risk Factors</div>
+                    <ul class="list-group list-group-flush factor-list" id="bleeding-factors"></ul>
+                </div>
+                <div class="card">
+                    <div class="card-header bg-primary text-white">Thrombotic Risk Factors</div>
+                    <ul class="list-group list-group-flush factor-list" id="thrombotic-factors"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tradeoffChart;
+        let modelData;
+
+        // Chart.js Plugin for background colors
+        const backgroundPlugin = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart) => {
+                const {ctx, chartArea, scales} = chart;
+                if (!chartArea) return;
+                const {left, right, top, bottom} = chartArea;
+                const {x, y} = scales;
+
+                // Define the lines
+                const line1 = (val) => y.getPixelForValue(1.5 * x.getValueForPixel(val)); // Upper bound of grey
+                const line2 = (val) => y.getPixelForValue(0.5 * x.getValueForPixel(val)); // Lower bound of grey
+                
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(left, top);
+                ctx.lineTo(right, top);
+                ctx.lineTo(right, line1(right));
+                ctx.lineTo(left, line1(left));
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(230, 230, 250, 0.7)'; // Blue area
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(left, line1(left));
+                ctx.lineTo(right, line1(right));
+                ctx.lineTo(right, line2(right));
+                ctx.lineTo(left, line2(left));
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(220, 220, 220, 0.5)'; // Grey area
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(left, line2(left));
+                ctx.lineTo(right, line2(right));
+                ctx.lineTo(right, bottom);
+                ctx.lineTo(left, bottom);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 255, 224, 0.7)'; // Yellow area
+                ctx.fill();
+                ctx.restore();
+            }
+        };
+        
+        Chart.register(backgroundPlugin);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Show loading overlay
+                document.getElementById('loading-overlay').style.display = 'flex';
+                document.getElementById('main-content').classList.add('content-hidden');
+                
+                const patientId = "{{ patient_id }}";
+                if (!patientId || patientId === "N/A") {
+                    throw new Error("Patient ID is not available.");
+                }
+
+                const response = await fetch('/api/calculate_tradeoff', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ patientId: patientId }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server responded with status ${response.status}`);
+                }
+
+                modelData = await response.json();
+                
+                if (modelData.error) {
+                    alert('Error loading tradeoff model: ' + modelData.error);
+                    return;
+                }
+                
+                populateFactorLists();
+                
+                // Use initial scores from the GET request to display the chart immediately
+                console.log('Model data received:', modelData);
+                if (modelData.initial_scores) {
+                    console.log('Initial scores found:', modelData.initial_scores);
+                    updateChart(modelData.initial_scores);
+                } else {
+                    console.error('No initial scores in model data');
+                }
+                
+                // Hide loading overlay after a short delay to ensure smooth transition
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    document.getElementById('main-content').classList.remove('content-hidden');
+                    document.getElementById('content-row').style.visibility = 'visible';
+                }, 300);
+                
+            } catch (error) {
+                console.error('Error loading tradeoff analysis:', error);
+                alert('Error loading tradeoff analysis. Please try again.');
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
+        });
+
+        function populateFactorLists() {
+            const bleedingList = document.getElementById('bleeding-factors');
+            const thromboticList = document.getElementById('thrombotic-factors');
+            const allPredictors = [...modelData.model.bleedingEvents.predictors, ...modelData.model.thromboticEvents.predictors];
+            const uniqueFactors = [...new Map(allPredictors.map(item => [item['factor'], item])).values()];
+            
+            // Separate factors into bleeding and thrombotic lists
+            const bleedingFactors = modelData.model.bleedingEvents.predictors;
+            const thromboticFactors = modelData.model.thromboticEvents.predictors;
+
+            bleedingFactors.forEach(p => bleedingList.appendChild(createFactorCheckbox(p)));
+            thromboticFactors.forEach(p => thromboticList.appendChild(createFactorCheckbox(p, 'thrombotic')));
+        }
+
+        function createFactorCheckbox(predictor, type = 'bleeding') {
+            const li = document.createElement('li');
+            li.className = 'list-group-item';
+            const isChecked = modelData.detected_factors[predictor.factor] ? 'checked' : '';
+            li.innerHTML = `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${predictor.factor}" id="check-${predictor.factor}-${type}" ${isChecked} onchange="recalculateScores()">
+                    <label class="form-check-label" for="check-${predictor.factor}-${type}">
+                        ${predictor.description} (HR: ${predictor.hazardRatio})
+                    </label>
+                </div>`;
+            return li;
+        }
+
+        async function recalculateScores() {
+            const activeFactors = {};
+            document.querySelectorAll('.form-check-input').forEach(input => {
+                if(input.checked) activeFactors[input.value] = true;
+            });
+
+            const response = await fetch('/api/calculate_tradeoff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active_factors: activeFactors })
+            });
+            const scores = await response.json();
+            updateChart(scores);
+        }
+
+        function updateChart(scores) {
+            console.log('updateChart called with scores:', scores);
+            console.log('Bleeding score:', scores.bleeding_score);
+            console.log('Thrombotic score:', scores.thrombotic_score);
+            
+            // Check if scores are valid numbers
+            if (!scores || typeof scores.bleeding_score !== 'number' || typeof scores.thrombotic_score !== 'number') {
+                console.error('Invalid scores received:', scores);
+                return;
+            }
+            
+            // Handle zero values for logarithmic scale (log(0) is undefined)
+            const bleeding_score = Math.max(scores.bleeding_score, 0.1);
+            const thrombotic_score = Math.max(scores.thrombotic_score, 0.1);
+            
+            console.log('Adjusted scores - Bleeding:', bleeding_score, 'Thrombotic:', thrombotic_score);
+            
+            const chartData = {
+                datasets: [{
+                    label: 'Patient Risk Profile',
+                    data: [{
+                        x: bleeding_score,
+                        y: thrombotic_score
+                    }],
+                    backgroundColor: 'rgba(255, 0, 0, 0.7)',
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointStyle: 'circle'
+                }]
+            };
+
+            console.log('Chart data:', chartData);
+
+            if (tradeoffChart) {
+                console.log('Updating existing chart');
+                tradeoffChart.data = chartData;
+                tradeoffChart.update();
+            } else {
+                const ctx = document.getElementById('tradeoffChart').getContext('2d');
+                tradeoffChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                type: 'logarithmic',
+                                title: { display: true, text: 'Estimated 1-Year Bleeding Risk (BARC 3-5, %)' },
+                                min: 0.1, max: 50,
+                                ticks: {
+                                    callback: function(value, index, values) { return Number(value.toString()); }
+                                }
+                            },
+                            y: {
+                                type: 'logarithmic',
+                                title: { display: true, text: 'Estimated 1-Year Ischemic Risk (MI/ST, %)' },
+                                min: 0.1, max: 50,
+                                ticks: {
+                                    callback: function(value, index, values) { return Number(value.toString()); }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // --- Helper functions (populateFactorLists, createFactorCheckbox) are assumed to be here ---
+
+    </script>
+</body>
+</html> 

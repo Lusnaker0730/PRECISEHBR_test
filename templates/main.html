@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 
-{% block title %}FHIR Bleeding Risk Calculator{% endblock %}
+{% block title %}PRECISE-HBR Bleeding Risk Calculator{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -9,7 +9,7 @@
         <div class="d-flex align-items-center">
             <i class="fas fa-info-circle me-2"></i>
             <div class="flex-grow-1">
-                <strong>PRECISE-DAPT Bleeding Risk Calculator</strong> - Evidence-based clinical decision support for dual antiplatelet therapy.
+                <strong>PRECISE-HBR Bleeding Risk Calculator</strong> - Evidence-based clinical decision support for high bleeding risk assessment in PCI patients.
             </div>
             <div>
                 <a href="/landing" target="_blank" class="btn btn-sm btn-outline-primary me-2">
@@ -84,19 +84,23 @@
                 <h5 class="mb-0"><i class="fas fa-list-ul"></i> Score Components</h5>
             </div>
             <div class="card-body">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Risk Factor</th>
-                            <th>Value</th>
-                            <th>Score</th>
-                            <th>Date</th>
+                            <th style="width: 35%;">Risk Factor</th>
+                            <th style="width: 40%;">Value (Editable)</th>
+                            <th style="width: 10%;">Score</th>
+                            <th style="width: 15%;">Date</th>
                         </tr>
                     </thead>
                     <tbody id="score-components">
-                        <!-- Dynamic content will be inserted here -->
+                        <!-- Interactive components will be inserted here by JavaScript -->
                     </tbody>
                 </table>
+                <div class="form-text mt-2">
+                    <i class="fas fa-info-circle"></i>
+                    You can manually edit the values in the table above to perform a "what-if" analysis. The total score will update automatically.
+                </div>
             </div>
         </div>
 
@@ -168,20 +172,34 @@
     // Global variables for feedback system
     let currentFeedbackType = null;
     let currentPatientData = null;
+    let scoreComponentData = []; // Store the component data globally
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Try to get patient_id from URL parameters or session
-        const urlParams = new URLSearchParams(window.location.search);
-        const patientIdFromUrl = urlParams.get('patient_id');
-        if (patientIdFromUrl) {
-            sessionStorage.setItem('current_patient_id', patientIdFromUrl);
+        // The patient_id is rendered into the template from the session by Flask
+        const patientId = "{{ patient_id }}";
+        if (patientId && patientId !== 'N/A') {
+            fetchRiskData(patientId);
+        } else {
+            console.error("Patient ID not found in template. Cannot fetch risk data.");
+            displayError("Could not identify the patient. Please try launching the app again.");
         }
-        fetchRiskData();
     });
 
-    async function fetchRiskData() {
+    async function fetchRiskData(patientId) {
+        document.getElementById('loading-container').style.display = 'block';
+        document.getElementById('results-container').style.display = 'none';
+        document.getElementById('error-container').style.display = 'none';
+
         try {
-            const response = await fetch('/api/calculate_risk');
+            const response = await fetch('/api/calculate_risk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ patientId: patientId })
+            });
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
@@ -195,9 +213,9 @@
     }
 
     function displayResults(data) {
-        // Store data for feedback system
         currentPatientData = data;
-        
+        scoreComponentData = data.score_components; // Store for recalculation
+
         // Hide loading, show results
         document.getElementById('loading-container').style.display = 'none';
         document.getElementById('results-container').style.display = 'block';
@@ -222,44 +240,164 @@
         document.getElementById('patient-age').textContent = data.patient_info.age !== null ? data.patient_info.age : 'N/A';
         document.getElementById('patient-gender').textContent = data.patient_info.gender || 'N/A';
 
-        // Total Score
-        document.getElementById('total-score').textContent = data.total_score;
-        const riskLevelEl = document.getElementById('risk-level');
-        riskLevelEl.textContent = data.risk_level;
+        // Render the interactive table for the first time
+        renderInteractiveTable();
         
-        // Set risk level styling based on content
-        if (data.risk_level.includes('High') || data.risk_level.includes('高')) {
-            riskLevelEl.className = 'h4 text-danger';
-        } else if (data.risk_level.includes('Medium') || data.risk_level.includes('中')) {
-            riskLevelEl.className = 'h4 text-warning';
-        } else {
-            riskLevelEl.className = 'h4 text-success';
-        }
-        
-        document.getElementById('recommendation').textContent = data.recommendation;
+        // Perform the initial calculation and UI update
+        recalculateAndRefreshUI();
+    }
 
-        // Score Breakdown
+    function renderInteractiveTable() {
         const componentsBody = document.getElementById('score-components');
         componentsBody.innerHTML = ''; // Clear previous content
-        
-                        if (data.score_components && data.score_components.length > 0) {
-            data.score_components.forEach(item => {
-                // Clean up parameter names for better display
-                let cleanParameterName = translateParameterName(item.parameter || 'Unnamed Criterion');
-                
+
+        if (scoreComponentData && scoreComponentData.length > 0) {
+            scoreComponentData.forEach(item => {
+                const cleanParameterName = translateParameterName(item.parameter || 'Unnamed Criterion');
+                let valueControl = '';
+
+                // Create an input for numbers, a checkbox for booleans
+                if (item.raw_value !== null && typeof item.raw_value === 'number') {
+                    valueControl = `<input type="number" class="form-control form-control-sm" id="input-${item.parameter}" value="${item.raw_value}" oninput="recalculateAndRefreshUI()">`;
+                } else if (item.is_present !== null && typeof item.is_present === 'boolean') {
+                    const checked = item.is_present ? 'checked' : '';
+                    valueControl = `
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="input-${item.parameter}" ${checked} onchange="recalculateAndRefreshUI()">
+                            <label class="form-check-label" for="input-${item.parameter}">${item.value}</label>
+                        </div>
+                    `;
+                } else {
+                    valueControl = `<span>${item.value}</span>`; // Fallback for base score or others
+                }
+
                 const row = `
                     <tr>
                         <td>${cleanParameterName}</td>
-                        <td>${item.value || 'N/A'}</td>
-                        <td><span class="badge ${item.score > 0 ? 'bg-danger' : 'bg-secondary'}">${item.score}</span></td>
+                        <td>${valueControl}</td>
+                        <td><span class="badge" id="score-${item.parameter}">${item.score}</span></td>
                         <td>${item.date || 'N/A'}</td>
                     </tr>
                 `;
                 componentsBody.innerHTML += row;
             });
         } else {
-            const row = `<tr><td colspan="4" class="text-center">No risk components identified.</td></tr>`;
+            const row = `<tr><td colspan="4" class="text-center">No risk components available for editing.</td></tr>`;
             componentsBody.innerHTML = row;
+        }
+    }
+
+    function recalculateAndRefreshUI() {
+        let totalScoreRaw = 0;
+        
+        // Find the base score from the original data and add it.
+        const baseScoreItem = scoreComponentData.find(c => c.parameter.includes("Base Score"));
+        totalScoreRaw += baseScoreItem ? baseScoreItem.score : 2;
+
+        scoreComponentData.forEach(item => {
+            if (item.parameter.includes("Base Score")) return; // Skip base score, already added
+
+            let currentScore = 0;
+            let currentScoreRaw = 0;
+            const inputElement = document.getElementById(`input-${item.parameter}`);
+            if (!inputElement) return;
+
+            if (inputElement.type === 'number') {
+                const value = parseFloat(inputElement.value) || 0;
+                // Replicate backend calculation logic
+                if (item.parameter.includes("Age")) {
+                    const effective = Math.max(30, Math.min(80, value));
+                    if (effective > 30) currentScoreRaw = (effective - 30) * 0.25;
+                } else if (item.parameter.includes("Hemoglobin")) {
+                    const effective = Math.max(5.0, Math.min(15.0, value));
+                    if (effective < 15) currentScoreRaw = (15 - effective) * 2.5;
+                } else if (item.parameter.includes("eGFR")) {
+                    const effective = Math.max(5, Math.min(100, value));
+                    if (effective < 100) currentScoreRaw = (100 - effective) * 0.05;
+                } else if (item.parameter.includes("White Blood Cell")) {
+                    const effective = Math.min(15.0, value);
+                    if (effective > 3.0) currentScoreRaw = (effective - 3.0) * 0.8;
+                }
+            } else if (inputElement.type === 'checkbox') {
+                const isChecked = inputElement.checked;
+                const label = document.querySelector(`label[for='${inputElement.id}']`);
+                if (isChecked) {
+                    if (item.parameter.includes("Prior Bleeding")) currentScoreRaw = 7;
+                    if (item.parameter.includes("Oral Anticoagulation")) currentScoreRaw = 5;
+                    if (item.parameter.includes("ARC-HBR")) currentScoreRaw = 3;
+                    if(label) label.textContent = "Yes";
+                } else {
+                    if(label) label.textContent = "No";
+                }
+            }
+            
+            totalScoreRaw += currentScoreRaw;
+            currentScore = Math.round(currentScoreRaw);
+
+            // Update individual score badge
+            const scoreBadge = document.getElementById(`score-${item.parameter}`);
+            if(scoreBadge) {
+                scoreBadge.textContent = currentScore;
+                scoreBadge.className = `badge ${currentScore > 0 ? 'bg-danger' : 'bg-secondary'}`;
+            }
+        });
+        
+        const finalScore = Math.round(totalScoreRaw);
+        updateTotalScoreUI(finalScore);
+    }
+    
+    function updateTotalScoreUI(score) {
+        document.getElementById('total-score').textContent = score;
+        const riskLevelEl = document.getElementById('risk-level');
+        
+        let riskCategory = "";
+        let colorClass = "";
+        let recommendation = "";
+        let riskPercent = 0;
+        
+        // Replicate bleeding risk percentage and category logic from backend
+        if (score <= 22) {
+            riskPercent = 0.5 + (score / 22) * 3.0;
+            riskCategory = `Not high bleeding risk (score ≤22)`;
+            colorClass = 'text-success';
+        } else if (score <= 26) {
+            riskPercent = 3.5 + ((score - 22) / 4) * 2.0;
+            riskCategory = `HBR (score 23-26)`;
+            colorClass = 'text-warning';
+        } else { // score >= 27
+             riskPercent = 5.5 + ((score - 26) / 4) * 2.5;
+             if (score > 30) riskPercent = 8.0 + ((score - 30) / 5) * 4.0;
+             if (score > 35) riskPercent = 12.0 + ((score - 35) / 10) * 3.0;
+             riskCategory = `Very HBR (score ≥27)`;
+             colorClass = 'text-danger';
+        }
+        riskPercent = Math.min(15.0, riskPercent);
+        recommendation = `1-year risk of major bleeding: ${riskPercent.toFixed(2)}% (Bleeding Academic Research Consortium [BARC] type 3 or 5)`;
+
+        riskLevelEl.textContent = riskCategory;
+        riskLevelEl.className = `h4 ${colorClass}`;
+        document.getElementById('recommendation').textContent = recommendation;
+        
+        // --- NEW: Add/Remove Tradeoff Analysis Link ---
+        const totalScoreCard = document.getElementById('risk-level').parentElement;
+        // First, remove any existing tradeoff link to prevent duplicates
+        const existingLink = totalScoreCard.querySelector('#tradeoff-link-container');
+        if (existingLink) {
+            existingLink.remove();
+        }
+
+        // Add the link only if the score is 23 or higher (HBR threshold)
+        if (score >= 23) {
+            const tradeoffDiv = document.createElement('div');
+            tradeoffDiv.id = 'tradeoff-link-container'; // Add an ID for easy removal
+            tradeoffDiv.className = 'alert alert-info mt-3';
+            tradeoffDiv.innerHTML = `
+                <strong>High Bleeding Risk Detected (PRECISE-HBR ≥23).</strong>
+                <br><br>
+                <a href="/tradeoff_analysis" class="btn btn-info btn-sm mt-2" target="_blank">
+                    <i class="fas fa-chart-line"></i> View Bleeding vs. Thrombosis Trade-off Analysis
+                </a>`;
+            totalScoreCard.appendChild(tradeoffDiv);
         }
     }
 
@@ -272,11 +410,14 @@
     function translateParameterName(parameterName) {
         // Clean up parameter names for better display
         const translations = {
-            'PreciseDAPT - Age': 'Age',
-            'PreciseDAPT - Hemoglobin': 'Hemoglobin',
-            'PreciseDAPT - Creatinine Clearance': 'Creatinine Clearance',
-            'PreciseDAPT - White Blood Cell Count': 'White Blood Cell Count',
-            'PreciseDAPT - Prior Bleeding': 'Prior Bleeding History'
+            'PRECISE-HBR - Base Score': 'Base Score (fixed)',
+            'PRECISE-HBR - Age': 'Age (truncated 30-80 years)',
+            'PRECISE-HBR - Hemoglobin': 'Hemoglobin (truncated 5-15 g/dL)',
+            'PRECISE-HBR - eGFR': 'eGFR (truncated above 100)',
+            'PRECISE-HBR - White Blood Cell Count': 'White Blood Cell Count (truncated above 15×10³)',
+            'PRECISE-HBR - Prior Bleeding': 'Previous Bleeding History',
+            'PRECISE-HBR - Oral Anticoagulation': 'Long-term Oral Anticoagulation',
+            'PRECISE-HBR - ARC-HBR Factors': 'ARC-HBR Elements ≥1'
         };
         
         return translations[parameterName] || parameterName;
