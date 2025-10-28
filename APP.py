@@ -114,7 +114,7 @@ setup_ephi_logging_filter(app)
 CLIENT_ID = get_secret('SMART_CLIENT_ID')
 REDIRECT_URI = get_secret('SMART_REDIRECT_URI')
 CLIENT_SECRET = get_secret('SMART_CLIENT_SECRET')
-SMART_SCOPES = get_secret('SMART_SCOPES', 'openid fhirUser launch/patient patient/*.read')
+SMART_SCOPES = get_secret('SMART_SCOPES', 'launch openid fhirUser profile user/Patient.rs user/Observation.rs user/Condition.rs user/MedicationRequest.rs user/Procedure.rs')
 
 if not CLIENT_ID or not REDIRECT_URI:
     app.logger.error("FATAL: SMART_CLIENT_ID and SMART_REDIRECT_URI must be set.")
@@ -336,6 +336,10 @@ def exchange_code():
         response.raise_for_status()
         token_response = response.json()
         app.logger.info(f"Received token response: {token_response}")
+        # --- DEBUG: Log the exact scopes granted by the EHR ---
+        granted_scopes = token_response.get('scope', 'No scopes returned from EHR')
+        app.logger.critical(f"Granted scopes from EHR: {granted_scopes}")
+        # --- END DEBUG ---
         session['fhir_data'] = {
             'token': token_response.get('access_token'),
             'patient': token_response.get('patient'),
