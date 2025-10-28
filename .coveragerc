@@ -1,0 +1,32 @@
+# Coverage.py configuration for PRECISE-HBR
+
+[run]
+source = .
+omit =
+    */tests/*
+    */venv/*
+    */env/*
+    */__pycache__/*
+    */site-packages/*
+    setup.py
+    conftest.py
+    */.tox/*
+
+[report]
+precision = 2
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
+

@@ -1,0 +1,188 @@
+name: CD - Continuous Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - PRECISE-HBR
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/PRECISE-HBR' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging-smart-fhir-app.appspot.com
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Verify configuration
+      run: |
+        echo "Verifying deployment configuration..."
+        [ -f app.yaml ] || exit 1
+        [ -f requirements.txt ] || exit 1
+        [ -f APP.py ] || exit 1
+        echo "✅ Configuration verified"
+        
+    - name: Deploy to App Engine (Staging)
+      run: |
+        gcloud app deploy app.yaml \
+          --project=${{ secrets.GCP_PROJECT_ID }} \
+          --version=staging-${{ github.sha }} \
+          --promote \
+          --quiet
+          
+    - name: Run post-deployment tests
+      run: |
+        echo "Running health checks..."
+        STAGING_URL="https://staging-smart-fhir-app.appspot.com"
+        curl -f $STAGING_URL/health || exit 1
+        echo "✅ Staging deployment successful"
+        
+    - name: Notify deployment status
+      if: always()
+      run: |
+        echo "## Staging Deployment" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version:** staging-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL:** https://staging-smart-fhir-app.appspot.com" >> $GITHUB_STEP_SUMMARY
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://smart-fhir-app.appspot.com
+    needs: []
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Create production backup
+      run: |
+        echo "Creating backup of current production version..."
+        gcloud app versions list \
+          --project=${{ secrets.GCP_PROJECT_ID }} \
+          --service=default \
+          --format="value(id)" \
+          --filter="SERVING_STATUS=SERVING" > current_version.txt
+        cat current_version.txt
+        
+    - name: Deploy to App Engine (Production)
+      run: |
+        gcloud app deploy app.yaml \
+          --project=${{ secrets.GCP_PROJECT_ID }} \
+          --version=prod-${{ github.sha }} \
+          --promote \
+          --quiet
+          
+    - name: Run post-deployment tests
+      run: |
+        echo "Running production health checks..."
+        PROD_URL="https://smart-fhir-app.appspot.com"
+        
+        # Health check
+        curl -f $PROD_URL/health || exit 1
+        
+        # Check critical endpoints
+        curl -f $PROD_URL/launch || exit 1
+        curl -f $PROD_URL/cds-services || exit 1
+        
+        echo "✅ Production deployment successful"
+        
+    - name: Update deployment tracking
+      run: |
+        echo "prod-${{ github.sha }}" > deployment_version.txt
+        echo "Deployed at: $(date -u)" >> deployment_version.txt
+        
+    - name: Upload deployment artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-info
+        path: |
+          deployment_version.txt
+          current_version.txt
+          
+    - name: Notify deployment status
+      if: always()
+      run: |
+        echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** Production" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version:** prod-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL:** https://smart-fhir-app.appspot.com" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+  rollback:
+    name: Rollback (Manual)
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'workflow_dispatch'
+    needs: [deploy-production]
+    environment:
+      name: production
+      
+    steps:
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Rollback to previous version
+      run: |
+        echo "Rolling back to previous version..."
+        PREVIOUS_VERSION=$(cat current_version.txt)
+        gcloud app versions migrate $PREVIOUS_VERSION \
+          --project=${{ secrets.GCP_PROJECT_ID }} \
+          --service=default \
+          --quiet
+        echo "✅ Rollback completed to version: $PREVIOUS_VERSION"
+

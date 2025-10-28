@@ -1,26 +1,89 @@
 # Git
-.git
+.git/
 .gitignore
+.github/
 
-# Docker
-Dockerfile
-.dockerignore
-docker-compose.yml
+# Documentation
+*.md
+docs/
+*.pdf
+*.docx
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.venv
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
 env/
+ENV/
+.venv/
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # Environment files
 .env
+.env.*
 *.env
+local.env
+cerner_sandbox.env
+docker.env
+production.env
 
-# IDE and OS specific
-.vscode/
-.idea/
+# Secrets
+*.pem
+*.key
+gcp-key.json
+credentials.json
+
+# Logs and reports
+*.log
+logs/
+security_reports/
+load_test_results/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Unused scripts
+run_*.bat
+run_*.sh
+run_*.ps1
+deploy.sh
+deploy.bat
+setup_*.bat
+
+# Test files
+test_*.py
+*_test.py
+conftest.py
+pytest.ini
+.coveragerc

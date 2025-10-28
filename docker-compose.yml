@@ -2,23 +2,54 @@ version: '3.8'
 
 services:
   smart-app:
-    # 告訴 docker-compose 使用當前目錄的 Dockerfile 來建置映像檔
-    build: .
+    # 使用當前目錄的 Dockerfile 來建置映像檔
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    
     # 為容器命名，方便管理
     container_name: smart_fhir_app
+    
     # 將主機的 8080 port 映射到容器的 8080 port
-    # 格式是： <主機 port>:<容器 port>
     ports:
       - "8080:8080"
-    # 從外部檔案讀取環境變數，這樣您就不需要將機密資訊寫死
-    # 建議您將 openemr.env 複製一份並命名為 docker.env 來使用
+    
+    # 環境變數配置
+    # 選項1：使用 .env 文件（推薦開發環境）
+    # 複製 local.env.template 為 .env 並配置
     env_file:
-      - docker.env
-    # (可選，但強烈建議在開發時使用)
-    # 將您本地的程式碼掛載到容器中，這樣您修改程式碼時就無需重新建置映像檔
-    # 格式是：<本地路徑>:<容器內路徑>
+      - .env  # 確保此文件存在並已配置
+    
+    # 選項2：直接在這裡設定環境變數（僅供參考，不建議提交敏感資訊）
+    environment:
+      - FLASK_ENV=development
+      - TESTING=false
+      # 其他環境變數請在 .env 文件中設定
+    
+    # 開發模式：掛載本地程式碼到容器
+    # 這樣修改程式碼時無需重新建置映像檔
     volumes:
       - .:/app
+      - /app/__pycache__  # 排除 Python 快取
+      - /app/.pytest_cache  # 排除 pytest 快取
+    
+    # 健康檢查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 重啟策略
+    restart: unless-stopped
+    
+    # 日誌配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   default:
