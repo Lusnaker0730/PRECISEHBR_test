@@ -614,7 +614,7 @@ csp = {
         'cdnjs.cloudflare.com',
         '\'unsafe-inline\''       # Allow inline styles for compatibility
     ],
-    'font-src': 'cdnjs.cloudflare.com',
+    'font-src': ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net'],
     'img-src': ['\'self\'', 'data:'],  # Allow images from self and data URIs
     'connect-src': [
         '\'self\'',

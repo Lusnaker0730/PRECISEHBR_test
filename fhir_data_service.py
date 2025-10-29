@@ -421,7 +421,7 @@ def get_tradeoff_model_data(fhir_server_url, access_token, client_id, patient_id
 def get_tradeoff_model_predictors():
     """Loads and returns the list of all predictors from the ARC-HBR model file."""
     script_dir = os.path.dirname(__file__)
-    model_path = os.path.join(script_dir, 'arc-hbr-model.json')
+    model_path = os.path.join(script_dir, 'fhir_resources', 'valuesets', 'arc-hbr-model.json')
     
     # Add detailed logging for debugging cloud deployment
     logging.info(f"Attempting to load tradeoff model from: {model_path}")
@@ -671,7 +671,7 @@ def calculate_tradeoff_scores(raw_data, demographics, tradeoff_data):
     """
     # Construct path relative to this script to avoid FileNotFoundError in production
     script_dir = os.path.dirname(__file__)
-    model_path = os.path.join(script_dir, 'arc-hbr-model.json')
+    model_path = os.path.join(script_dir, 'fhir_resources', 'valuesets', 'arc-hbr-model.json')
     
     # Add detailed logging for debugging
     logging.info(f"Loading tradeoff model from: {model_path}")
