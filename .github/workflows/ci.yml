@@ -122,6 +122,9 @@ jobs:
     - name: Run unit tests with pytest
       run: |
         pytest tests/ --cov=. --cov-report=xml --cov-report=html --cov-report=term
+      env:
+        FLASK_SECRET_KEY: test-secret-key-for-ci-only-not-for-production
+        TESTING: true
       continue-on-error: true
         
     - name: Upload coverage reports
@@ -178,6 +181,7 @@ jobs:
       env:
         FLASK_ENV: development
         TESTING: true
+        FLASK_SECRET_KEY: test-secret-key-for-ci-only-not-for-production
         
     - name: Create build artifact
       run: |
