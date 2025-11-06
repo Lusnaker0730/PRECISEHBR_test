@@ -109,6 +109,9 @@ sessions/
 *.sqlite
 *.sqlite3
 
+# Flask instance folder
+instance/
+
 # Temporary files
 tmp/
 temp/
