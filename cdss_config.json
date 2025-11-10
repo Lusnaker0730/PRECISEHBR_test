@@ -107,26 +107,19 @@
     ],
     "laboratory_value_extraction": {
         "hemoglobin_loinc_codes": [
-            "718-7",
-            "33747-0",
-            "20509-6"
+            "718-7"
         ],
         "creatinine_loinc_codes": [
-            "2160-0",
-            "33914-3"
+            "2160-0"
         ],
         "egfr_loinc_codes": [
-            "33914-3",
-            "62238-1"
+            "33914-3"
         ],
         "white_blood_cell_loinc_codes": [
-            "26464-8",
-            "6690-2",
-            "33256-9"
+            "6690-2"
         ],
         "platelet_loinc_codes": [
-            "26515-7",
-            "33735-5"
+            "26515-7"
         ],
         "unit_conversions": {
             "hemoglobin": {

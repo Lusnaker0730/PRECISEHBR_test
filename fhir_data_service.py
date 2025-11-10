@@ -19,13 +19,14 @@ except json.JSONDecodeError:
     logging.error("CRITICAL: cdss_config.json is not valid JSON. Calculations will fail.")
     CDSS_CONFIG = {}
 
-# --- Configuration for LOINC codes (7-item PRECISE-HBR) ---
+# --- Configuration for LOINC codes (PRECISE-HBR) ---
+# Simplified to use only the most common LOINC code for each observation
 LOINC_CODES = {
     "EGFR": ("33914-3",),          # Glomerular filtration rate/1.73 sq M predicted
-    "CREATININE": ("2160-0",),      # Creatinine [mass/volume] in Serum or Plasma
-    "HEMOGLOBIN": ("718-7",),       # Hemoglobin [Mass/volume] in Blood
-    "WBC": ("26464-8", "6690-2"),  # White blood cells [#/volume] in Blood by automated and manual count
-    "PLATELETS": ("26515-7", "33735-5"),  # Platelet count [#/volume] in Blood
+    "CREATININE": ("2160-0",),     # Creatinine [mass/volume] in Serum or Plasma (most common)
+    "HEMOGLOBIN": ("718-7",),      # Hemoglobin [Mass/volume] in Blood (most common)
+    "WBC": ("6690-2",),            # Leukocytes [#/volume] in Blood by Automated count (most common)
+    "PLATELETS": ("26515-7",),     # Platelets [#/volume] in Blood by Automated count (most common)
 }
 
 # --- Unit Conversion System ---
