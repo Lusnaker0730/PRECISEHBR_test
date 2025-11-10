@@ -117,7 +117,30 @@
         },
         "liver_cirrhosis": {
             "parent_code": "19943007",
-            "description": "Liver cirrhosis with portal hypertension"
+            "cirrhosis_keywords": [
+                "cirrhosis",
+                "liver cirrhosis",
+                "hepatic cirrhosis"
+            ],
+            "portal_hypertension_criteria": {
+                "required_logic": "cirrhosis AND (at least one of the following)",
+                "additional_criteria": [
+                    "ascites",
+                    "portal hypertension",
+                    "esophageal varices",
+                    "esophageal varicosis",
+                    "hepatic encephalopathy",
+                    "varices",
+                    "variceal bleeding"
+                ],
+                "snomed_codes": [
+                    "56265001",
+                    "302991009",
+                    "32381004",
+                    "235889001"
+                ]
+            },
+            "description": "Liver cirrhosis with portal hypertension (肝硬化合併門脈高壓)"
         },
         "thrombocytopenia": {
             "parent_code": "415116008",

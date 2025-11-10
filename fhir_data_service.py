@@ -1598,41 +1598,58 @@ def check_prior_bleeding_updated(conditions):
 def check_liver_cirrhosis_portal_hypertension_updated(conditions):
     """
     Check for liver cirrhosis with portal hypertension using codes from configuration.
+    Requires BOTH:
+    1. Evidence of liver cirrhosis (SNOMED code or text)
+    2. Evidence of portal hypertension (ascites, varices, or encephalopathy)
     """
-    # Get SNOMED codes from configuration
+    # Get configuration
     snomed_config = CDSS_CONFIG.get('precise_hbr_snomed_codes', {})
     liver_config = snomed_config.get('liver_cirrhosis', {})
+    
     cirrhosis_snomed_code = liver_config.get('parent_code', '19943007')
+    cirrhosis_keywords = liver_config.get('cirrhosis_keywords', ['cirrhosis'])
+    
+    pht_config = liver_config.get('portal_hypertension_criteria', {})
+    additional_criteria = pht_config.get('additional_criteria', ['ascites', 'portal hypertension', 'esophageal varices', 'hepatic encephalopathy'])
+    pht_snomed_codes = pht_config.get('snomed_codes', [])
     
     has_cirrhosis = False
     has_additional_criteria = False
     found_conditions = []
-    
-    # Required additional criteria (text-based)
-    additional_criteria = ['ascites', 'portal hypertension', 'esophageal varices', 'hepatic encephalopathy']
     
     for condition in conditions:
         condition_text = get_condition_text(condition).lower()
         
         # Check for liver cirrhosis SNOMED code
         for coding in condition.get('code', {}).get('coding', []):
-            if (coding.get('system') == 'http://snomed.info/sct' and 
-                coding.get('code') == cirrhosis_snomed_code):
+            code = coding.get('code', '')
+            system = coding.get('system', '')
+            
+            # Check cirrhosis SNOMED code
+            if system == 'http://snomed.info/sct' and code == cirrhosis_snomed_code:
                 has_cirrhosis = True
                 found_conditions.append(coding.get('display', 'Liver cirrhosis'))
+            
+            # Check portal hypertension SNOMED codes
+            if system == 'http://snomed.info/sct' and code in pht_snomed_codes:
+                has_additional_criteria = True
+                found_conditions.append(coding.get('display', 'Portal hypertension manifestation'))
         
-        # Also check text for cirrhosis
-        if 'cirrhosis' in condition_text:
-            has_cirrhosis = True
-            found_conditions.append(condition_text)
+        # Check text for cirrhosis keywords
+        for keyword in cirrhosis_keywords:
+            if keyword in condition_text:
+                has_cirrhosis = True
+                found_conditions.append(f"Found cirrhosis: {condition_text[:50]}...")
+                break
         
-        # Check for additional criteria
+        # Check text for portal hypertension criteria
         for criteria in additional_criteria:
             if criteria in condition_text:
                 has_additional_criteria = True
-                found_conditions.append(f"Found: {criteria}")
+                found_conditions.append(f"Found portal hypertension sign: {criteria}")
+                break
     
-    # Must have both cirrhosis AND additional criteria
+    # Must have BOTH cirrhosis AND additional criteria (portal hypertension signs)
     return (has_cirrhosis and has_additional_criteria), found_conditions
 
 def check_active_cancer_updated(conditions):
