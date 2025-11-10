@@ -408,18 +408,29 @@ def get_tradeoff_model_data(fhir_server_url, access_token, client_id, patient_id
         if conditions.entry:
             for entry in conditions.entry:
                 c = entry.resource
-                # Diabetes Mellitus (SNOMED CT: 73211009)
-                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', '73211009'):
+                # Get SNOMED codes from configuration
+                snomed_codes = CDSS_CONFIG.get('tradeoff_analysis', {}).get('snomed_codes', {})
+                
+                # Diabetes Mellitus
+                diabetes_code = snomed_codes.get('diabetes', '73211009')
+                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', diabetes_code):
                     tradeoff_data["diabetes"] = True
-                # Myocardial Infarction (SNOMED CT: 22298006)
-                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', '22298006'):
+                
+                # Myocardial Infarction
+                mi_code = snomed_codes.get('myocardial_infarction', '22298006')
+                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', mi_code):
                     tradeoff_data["prior_mi"] = True
-                # NSTEMI/STEMI (SNOMED CT: 164868009, 164869001)
-                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', '164868009') or \
-                   _resource_has_code(c.as_json(), 'http://snomed.info/sct', '164869001'):
+                
+                # NSTEMI/STEMI
+                nstemi_code = snomed_codes.get('nstemi', '164868009')
+                stemi_code = snomed_codes.get('stemi', '164869001')
+                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', nstemi_code) or \
+                   _resource_has_code(c.as_json(), 'http://snomed.info/sct', stemi_code):
                     tradeoff_data["nstemi_stemi"] = True
-                # COPD (SNOMED CT: 13645005)
-                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', '13645005'):
+                
+                # COPD
+                copd_code = snomed_codes.get('copd', '13645005')
+                if _resource_has_code(c.as_json(), 'http://snomed.info/sct', copd_code):
                     tradeoff_data["copd"] = True
 
     except Exception as e:
@@ -461,13 +472,18 @@ def get_tradeoff_model_data(fhir_server_url, access_token, client_id, patient_id
         # Timeout is configured via the HTTPAdapter on the session
         procedures = procedure.Procedure.where(search_params).perform(fhir_client.server)
         if procedures.entry:
+            # Get SNOMED codes from configuration
+            snomed_codes = CDSS_CONFIG.get('tradeoff_analysis', {}).get('snomed_codes', {})
+            complex_pci_code = snomed_codes.get('complex_pci', '397682003')
+            bms_code = snomed_codes.get('bare_metal_stent', '427183000')
+            
             for entry in procedures.entry:
                 p = entry.resource
-                # Complex PCI (example, needs specific codes)
-                if _resource_has_code(p.as_json(), 'http://snomed.info/sct', '397682003'): # Example for complex PCI
+                # Complex PCI
+                if _resource_has_code(p.as_json(), 'http://snomed.info/sct', complex_pci_code):
                     tradeoff_data["complex_pci"] = True
-                # Bare-metal stent (BMS) (example, needs specific codes)
-                if _resource_has_code(p.as_json(), 'http://snomed.info/sct', '427183000'): # Example for BMS
+                # Bare-metal stent (BMS)
+                if _resource_has_code(p.as_json(), 'http://snomed.info/sct', bms_code):
                     tradeoff_data["bms_used"] = True
     except Exception as e:
         logging.warning(f"Error fetching procedures for tradeoff model: {e}")
@@ -479,10 +495,20 @@ def get_tradeoff_model_data(fhir_server_url, access_token, client_id, patient_id
         # Timeout is configured via the HTTPAdapter on the session
         med_requests = medicationrequest.MedicationRequest.where(search_params).perform(fhir_client.server)
         if med_requests.entry:
+            # Get RxNorm codes from configuration
+            rxnorm_codes = CDSS_CONFIG.get('tradeoff_analysis', {}).get('rxnorm_codes', {})
+            oac_codes = [
+                rxnorm_codes.get('warfarin', '11289'),
+                rxnorm_codes.get('rivaroxaban', '21821'),
+                rxnorm_codes.get('apixaban', '1364430'),
+                rxnorm_codes.get('dabigatran', '1037042'),
+                rxnorm_codes.get('edoxaban', '1537033')
+            ]
+            
             for entry in med_requests.entry:
                 mr = entry.resource
-                # Check for Oral Anticoagulants (example RxNorm)
-                if any(_resource_has_code(mr.as_json(), 'http://www.nlm.nih.gov/research/umls/rxnorm', code) for code in ['11289', '21821']): # Warfarin, Rivaroxaban
+                # Check for Oral Anticoagulants
+                if any(_resource_has_code(mr.as_json(), 'http://www.nlm.nih.gov/research/umls/rxnorm', code) for code in oac_codes):
                     tradeoff_data["oac_discharge"] = True
     except Exception as e:
         logging.warning(f"Error fetching medication requests for OAC: {e}")
@@ -536,21 +562,34 @@ def detect_tradeoff_factors(raw_data, demographics, tradeoff_data):
     """
     Detects which tradeoff factors are present based on patient data.
     Returns a dictionary of detected factor keys.
+    Uses thresholds from cdss_config.json for consistency.
     """
     detected_factors = {}
     
-    if demographics.get('age', 0) >= 65:
+    # Get thresholds from configuration
+    tradeoff_config = CDSS_CONFIG.get('tradeoff_analysis', {})
+    thresholds = tradeoff_config.get('risk_factor_thresholds', {})
+    
+    # Age threshold
+    age_threshold = thresholds.get('age_threshold', 65)
+    if demographics.get('age', 0) >= age_threshold:
         detected_factors['age_ge_65'] = True
 
+    # Hemoglobin thresholds
     hb_obs = raw_data.get('HEMOGLOBIN', [])
     if hb_obs:
         hb_val = get_value_from_observation(hb_obs[0], TARGET_UNITS['HEMOGLOBIN'])
         if hb_val:
-            if 11 <= hb_val < 13:
+            hb_ranges = thresholds.get('hemoglobin_ranges', {})
+            moderate = hb_ranges.get('moderate', {'min': 11, 'max': 13})
+            severe = hb_ranges.get('severe', {'max': 11})
+            
+            if moderate['min'] <= hb_val < moderate['max']:
                 detected_factors['hemoglobin_11_12.9'] = True
-            elif hb_val < 11:
+            elif hb_val < severe['max']:
                 detected_factors['hemoglobin_lt_11'] = True
 
+    # eGFR thresholds
     egfr_obs = raw_data.get('EGFR', [])
     cr_obs = raw_data.get('CREATININE', [])
     egfr_val = None
@@ -562,9 +601,13 @@ def detect_tradeoff_factors(raw_data, demographics, tradeoff_data):
             egfr_val = calculate_egfr(cr_val, demographics['age'], demographics['gender'])
             
     if egfr_val:
-        if 30 <= egfr_val < 60:
+        egfr_ranges = thresholds.get('egfr_ranges', {})
+        moderate = egfr_ranges.get('moderate', {'min': 30, 'max': 60})
+        severe = egfr_ranges.get('severe', {'max': 30})
+        
+        if moderate['min'] <= egfr_val < moderate['max']:
             detected_factors['egfr_30_59'] = True
-        elif egfr_val < 30:
+        elif egfr_val < severe['max']:
             detected_factors['egfr_lt_30'] = True
     
     if tradeoff_data.get('diabetes'):
@@ -640,12 +683,11 @@ def calculate_tradeoff_scores_interactive(model_predictors, active_factors):
     """
     import math
     
-    # Baseline 1-year event rates for reference group (patients with NO risk factors)
-    # Based on Galli M, et al. JAMA Cardiology 2021 - ARC-HBR Trade-off Model
-    # Represents lowest risk quintile in the ARC-HBR cohort
-    # Overall HBR cohort rates: 7.5% bleeding, 7.0% thrombotic
-    BASELINE_BLEEDING_RATE = 2.5  # % (BARC 3-5 bleeding, 1-year risk, reference group)
-    BASELINE_THROMBOTIC_RATE = 2.5 # % (MI/ST, 1-year risk, reference group)
+    # Get baseline event rates from configuration
+    tradeoff_config = CDSS_CONFIG.get('tradeoff_analysis', {})
+    baseline_rates = tradeoff_config.get('baseline_event_rates', {})
+    BASELINE_BLEEDING_RATE = baseline_rates.get('bleeding_rate_percent', 2.5)
+    BASELINE_THROMBOTIC_RATE = baseline_rates.get('thrombotic_rate_percent', 2.5)
 
     # Use multiplicative model: start with HR = 1 (no risk factor)
     bleeding_score_hr = 1.0

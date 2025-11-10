@@ -134,8 +134,7 @@
         ],
         "wbc_text_search": [
             "WBC",
-            "White blood cell",
-            "Leukocytes"
+            "White blood cell"
         ],
         "platelet_loinc_codes": [
             "26515-7"
@@ -206,5 +205,54 @@
         ],
         "c_statistic": "0.67-0.72",
         "population": "Post-PCI patients on DAPT"
+    },
+    "tradeoff_analysis": {
+        "model_file": "fhir_resources/valuesets/arc-hbr-model.json",
+        "baseline_event_rates": {
+            "bleeding_rate_percent": 2.5,
+            "thrombotic_rate_percent": 2.5,
+            "description": "Baseline 1-year event rates for reference group (ARC-HBR cohort, Galli M, et al. JAMA Cardiology 2021)"
+        },
+        "risk_factor_thresholds": {
+            "age_threshold": 65,
+            "hemoglobin_ranges": {
+                "moderate": {
+                    "min": 11,
+                    "max": 13,
+                    "description": "Hemoglobin 11-12.9 g/dL"
+                },
+                "severe": {
+                    "max": 11,
+                    "description": "Hemoglobin < 11 g/dL"
+                }
+            },
+            "egfr_ranges": {
+                "moderate": {
+                    "min": 30,
+                    "max": 60,
+                    "description": "eGFR 30-59 mL/min"
+                },
+                "severe": {
+                    "max": 30,
+                    "description": "eGFR < 30 mL/min"
+                }
+            }
+        },
+        "snomed_codes": {
+            "copd": "13645005",
+            "nstemi": "164868009",
+            "stemi": "164869001",
+            "diabetes": "73211009",
+            "myocardial_infarction": "22298006",
+            "complex_pci": "397682003",
+            "bare_metal_stent": "427183000"
+        },
+        "rxnorm_codes": {
+            "warfarin": "11289",
+            "rivaroxaban": "21821",
+            "apixaban": "1364430",
+            "dabigatran": "1037042",
+            "edoxaban": "1537033"
+        }
     }
 } 
