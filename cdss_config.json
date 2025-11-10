@@ -62,29 +62,70 @@
             "score_contribution": "Presence of ≥1 factor increases risk"
         }
     },
-    "bleeding_history_codings": {
-        "spontaneous_bleeding_snomed": [
-            ["http://snomed.info/sct", "162050001"],
-            ["http://snomed.info/sct", "131148009"],
-            ["http://snomed.info/sct", "428860009"],
-            ["http://snomed.info/sct", "429044007"],
-            ["http://snomed.info/sct", "443760008"],
-            ["http://snomed.info/sct", "275190004"],
-            ["http://snomed.info/sct", "1386000"],
-            ["http://snomed.info/sct", "95545007"],
-            ["http://snomed.info/sct", "74474003"]
-        ],
-        "gastrointestinal_bleeding_snomed": [
-            ["http://snomed.info/sct", "25374005"],
-            ["http://snomed.info/sct", "37372002"],
-            ["http://snomed.info/sct", "272140002"],
-            ["http://snomed.info/sct", "422400008"]
-        ],
-        "intracranial_hemorrhage_snomed": [
-            ["http://snomed.info/sct", "1386000"],
-            ["http://snomed.info/sct", "95545007"],
-            ["http://snomed.info/sct", "274100004"]
-        ]
+    "precise_hbr_snomed_codes": {
+        "bleeding_diathesis": {
+            "parent_code": "64779008",
+            "specific_codes": [
+                "64779008",
+                "234717003",
+                "77517001",
+                "50048000"
+            ],
+            "description": "Chronic bleeding diathesis (慢性出血性體質)"
+        },
+        "prior_bleeding": {
+            "parent_codes": [
+                "74474003",
+                "50960005",
+                "1386000",
+                "236002003",
+                "443826006",
+                "233703007",
+                "59282003",
+                "3298000",
+                "9957009",
+                "17338001"
+            ],
+            "specific_codes": [
+                "74474003",
+                "50960005",
+                "1386000",
+                "236002003",
+                "443826006",
+                "233703007",
+                "59282003",
+                "3298000",
+                "9957009",
+                "17338001",
+                "162050001",
+                "131148009",
+                "428860009",
+                "429044007",
+                "443760008",
+                "275190004",
+                "95545007"
+            ],
+            "description": "Prior bleeding events (既往出血史)"
+        },
+        "active_cancer": {
+            "parent_code": "363346000",
+            "exclude_codes": [
+                "254637007",
+                "254632001"
+            ],
+            "description": "Active malignant neoplastic disease, excluding specific skin cancers"
+        },
+        "liver_cirrhosis": {
+            "parent_code": "19943007",
+            "description": "Liver cirrhosis with portal hypertension"
+        },
+        "stroke_ischemic": {
+            "parent_code": "422504002",
+            "severity_codes": {
+                "moderate_severe": ["230690007", "230691006"]
+            },
+            "description": "Ischemic stroke (moderate to severe)"
+        }
     },
     "bleeding_history_keywords": [
         "with bleeding",

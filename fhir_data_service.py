@@ -1007,7 +1007,9 @@ def check_bleeding_history(conditions):
     if not CDSS_CONFIG:
         return False, []
     
-    bleeding_codings = CDSS_CONFIG.get('bleeding_history_codings', {})
+    # Get SNOMED codes from unified configuration
+    snomed_config = CDSS_CONFIG.get('precise_hbr_snomed_codes', {})
+    prior_bleeding_codes = snomed_config.get('prior_bleeding', {}).get('specific_codes', [])
     bleeding_keywords = CDSS_CONFIG.get('bleeding_history_keywords', [])
     
     bleeding_evidence = []
@@ -1020,12 +1022,10 @@ def check_bleeding_history(conditions):
             code = coding.get('code', '')
             
             # Check against bleeding history SNOMED codes
-            for bleeding_type, code_list in bleeding_codings.items():
-                for snomed_system, snomed_code in code_list:
-                    if system == snomed_system and code == snomed_code:
-                        display = coding.get('display', condition.get('code', {}).get('text', 'Bleeding history'))
-                        bleeding_evidence.append(display)
-                        break
+            if system == 'http://snomed.info/sct' and code in prior_bleeding_codes:
+                display = coding.get('display', condition.get('code', {}).get('text', 'Bleeding history'))
+                bleeding_evidence.append(display)
+                break
         
         # Check text-based conditions
         condition_text = ""
@@ -1538,16 +1538,12 @@ def check_oral_anticoagulation(medications):
 
 def check_bleeding_diathesis_updated(conditions):
     """
-    Check for chronic bleeding diathesis using updated valueset (64779008 and descendants).
+    Check for chronic bleeding diathesis using codes from configuration.
     """
-    bleeding_diathesis_snomed_codes = [
-        '64779008',  # Bleeding diathesis (disorder) - parent code
-        # Additional specific codes that would be descendants
-        '234717003',  # Coagulation factor deficiency
-        '77517001',   # Von Willebrand's disease
-        '50048000',   # Hemophilia
-        '271737000'   # Acquired coagulation disorder
-    ]
+    # Get SNOMED codes from configuration
+    snomed_config = CDSS_CONFIG.get('precise_hbr_snomed_codes', {})
+    diathesis_config = snomed_config.get('bleeding_diathesis', {})
+    bleeding_diathesis_snomed_codes = diathesis_config.get('specific_codes', ['64779008'])
     
     for condition in conditions:
         # Check SNOMED codes
@@ -1568,20 +1564,12 @@ def check_bleeding_diathesis_updated(conditions):
 
 def check_prior_bleeding_updated(conditions):
     """
-    Check for prior bleeding history using updated valueset with multiple parent codes.
+    Check for prior bleeding history using codes from configuration.
     """
-    prior_bleeding_snomed_codes = [
-        '74474003',   # Gastrointestinal hemorrhage
-        '50960005',   # Hemopericardium  
-        '1386000',    # Intracranial hemorrhage
-        '236002003',  # Retroperitoneal hematoma
-        '443826006',  # Hemoperitoneum
-        '233703007',  # Pulmonary hemorrhage
-        '59282003',   # Hemarthrosis
-        '3298000',    # Gross hematuria
-        '9957009',    # Renal hemorrhage
-        '17338001'    # Hemothorax
-    ]
+    # Get SNOMED codes from configuration
+    snomed_config = CDSS_CONFIG.get('precise_hbr_snomed_codes', {})
+    prior_bleeding_config = snomed_config.get('prior_bleeding', {})
+    prior_bleeding_snomed_codes = prior_bleeding_config.get('specific_codes', [])
     
     found_bleeding = []
     
@@ -1605,9 +1593,13 @@ def check_prior_bleeding_updated(conditions):
 
 def check_liver_cirrhosis_portal_hypertension_updated(conditions):
     """
-    Check for liver cirrhosis with portal hypertension using updated logic:
-    Requires cirrhosis (19943007) AND additional text criteria.
+    Check for liver cirrhosis with portal hypertension using codes from configuration.
     """
+    # Get SNOMED codes from configuration
+    snomed_config = CDSS_CONFIG.get('precise_hbr_snomed_codes', {})
+    liver_config = snomed_config.get('liver_cirrhosis', {})
+    cirrhosis_snomed_code = liver_config.get('parent_code', '19943007')
+    
     has_cirrhosis = False
     has_additional_criteria = False
     found_conditions = []
@@ -1621,7 +1613,7 @@ def check_liver_cirrhosis_portal_hypertension_updated(conditions):
         # Check for liver cirrhosis SNOMED code
         for coding in condition.get('code', {}).get('coding', []):
             if (coding.get('system') == 'http://snomed.info/sct' and 
-                coding.get('code') == '19943007'):
+                coding.get('code') == cirrhosis_snomed_code):
                 has_cirrhosis = True
                 found_conditions.append(coding.get('display', 'Liver cirrhosis'))
         
@@ -1641,13 +1633,13 @@ def check_liver_cirrhosis_portal_hypertension_updated(conditions):
 
 def check_active_cancer_updated(conditions):
     """
-    Check for active malignant neoplastic disease using updated logic:
-    - Include: 363346000 (Malignant neoplastic disease) and descendants
-    - Exclude: 254637007 (Basal cell carcinoma), 254632001 (Squamous cell carcinoma)
-    - Require: clinicalStatus = active
+    Check for active malignant neoplastic disease using codes from configuration.
     """
-    excluded_codes = ['254637007', '254632001']  # Skin cancers to exclude
-    malignancy_parent_code = '363346000'  # Malignant neoplastic disease
+    # Get SNOMED codes from configuration
+    snomed_config = CDSS_CONFIG.get('precise_hbr_snomed_codes', {})
+    cancer_config = snomed_config.get('active_cancer', {})
+    malignancy_parent_code = cancer_config.get('parent_code', '363346000')
+    excluded_codes = cancer_config.get('exclude_codes', ['254637007', '254632001'])
     
     for condition in conditions:
         # Check clinical status first
