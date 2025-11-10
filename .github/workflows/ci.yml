@@ -2,9 +2,9 @@ name: CI - Continuous Integration
 
 on:
   push:
-    branches: [ main, PRECISE-HBR, PreciseDAPT, develop ]
+    branches: [ main, PRECISE-HBR, develop ]
   pull_request:
-    branches: [ main, PRECISE-HBR, PreciseDAPT ]
+    branches: [ main, PRECISE-HBR ]
 
 env:
   PYTHON_VERSION: '3.11'

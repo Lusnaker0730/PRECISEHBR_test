@@ -11,7 +11,7 @@
         "hemoglobin": "Observation?patient={{context.patientId}}&code=718-7&_sort=-date&_count=1",
         "creatinine": "Observation?patient={{context.patientId}}&code=2160-0&_sort=-date&_count=1", 
         "egfr": "Observation?patient={{context.patientId}}&code=33914-3&_sort=-date&_count=1",
-        "wbc": "Observation?patient={{context.patientId}}&code=26464-8,6690-2,33256-9&_sort=-date&_count=1",
+        "wbc": "Observation?patient={{context.patientId}}&code=26464-8&_sort=-date&_count=1",
         "conditions": "Condition?patient={{context.patientId}}&_count=100"
       }
     },

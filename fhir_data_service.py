@@ -204,7 +204,7 @@ def get_fhir_data(fhir_server_url, access_token, patient_id, client_id):
 
         raw_data = {"patient": patient_resource.as_json()}
         
-        # Fetch observations by LOINC codes (updated for PRECISE-DAPT parameters)
+        # Fetch observations by LOINC codes for PRECISE-HBR parameters
         for resource_type, codes in LOINC_CODES.items():
             try:
                 # Search for observations with specific LOINC codes
@@ -277,7 +277,7 @@ def get_fhir_data(fhir_server_url, access_token, patient_id, client_id):
             raw_data['conditions'] = []
             logging.warning(f"Continuing with empty conditions list for patient {patient_id} due to a server error.")
         
-        # For PRECISE-DAPT, we don't need medications and procedures, but keep minimal fetch for compatibility
+        # Fetch minimal medication data for compatibility
         raw_data['med_requests'] = []
         raw_data['procedures'] = []
 
@@ -610,7 +610,7 @@ def calculate_tradeoff_scores_interactive(model_predictors, active_factors):
         "thrombotic_factors": thrombotic_factors_details
     }
 
-# --- Data Processing and Risk Calculation Logic for PRECISE-DAPT ---
+# --- Data Processing and Risk Calculation Logic for PRECISE-HBR ---
 
 def _resource_has_code(resource, system, code):
     """Checks if a resource's coding matches the given system and code."""
@@ -933,177 +933,6 @@ def check_bleeding_history(conditions):
     
     has_bleeding_history = len(bleeding_evidence) > 0
     return has_bleeding_history, bleeding_evidence
-
-def calculate_precise_dapt_score(raw_data, demographics):
-    """
-    Calculates PRECISE-DAPT bleeding risk score based on 5-item model:
-    1. Age
-    2. Hemoglobin
-    3. Creatinine clearance 
-    4. White blood cell count
-    5. Previous spontaneous bleeding
-    
-    Returns components list and total score.
-    """
-    if not CDSS_CONFIG:
-        return [], 0
-    
-    components = []
-    total_score = 0
-    
-    # Get scoring tables from config
-    scoring_config = CDSS_CONFIG.get('scoring_nomogram', {})
-    age_table = scoring_config.get('age_score_table', [])
-    hb_table = scoring_config.get('hemoglobin_score_table', [])
-    ccr_table = scoring_config.get('creatinine_clearance_score_table', [])
-    wbc_table = scoring_config.get('wbc_score_table', [])
-    bleeding_config = CDSS_CONFIG.get('precise_dapt_parameters', {}).get('previous_bleeding', {})
-    
-    # 1. Age Score
-    age = demographics.get('age')
-    if age:
-        age_score = get_score_from_table(age, age_table, 'age_range')
-        total_score += age_score
-        components.append({
-            "parameter": "PreciseDAPT - Age",
-            "value": f"{age} years",
-            "score": age_score,
-            "date": "N/A",
-            "description": f"Age contribution to PRECISE-DAPT score"
-        })
-    else:
-        components.append({
-            "parameter": "PreciseDAPT - Age", 
-            "value": "Unknown",
-            "score": 0,
-            "date": "N/A",
-            "description": "Age not available"
-        })
-    
-    # 2. Hemoglobin Score
-    hemoglobin_list = raw_data.get('HEMOGLOBIN', [])
-    hemoglobin_obs = hemoglobin_list[0] if hemoglobin_list else {}
-    hb_val = get_value_from_observation(hemoglobin_obs, TARGET_UNITS['HEMOGLOBIN'])
-    
-    if hb_val:
-        hb_unit = TARGET_UNITS['HEMOGLOBIN']['unit']
-        hb_date = hemoglobin_obs.get('effectiveDateTime', 'N/A')
-        hb_score = get_score_from_table(hb_val, hb_table, 'hb_range')
-        total_score += hb_score
-        components.append({
-            "parameter": "PreciseDAPT - Hemoglobin",
-            "value": f"{hb_val} {hb_unit}",
-            "score": hb_score,
-            "date": hb_date,
-            "description": f"Hemoglobin contribution to PRECISE-DAPT score"
-        })
-    else:
-        components.append({
-            "parameter": "PreciseDAPT - Hemoglobin",
-            "value": "Not available",
-            "score": 0,
-            "date": "N/A", 
-            "description": "Hemoglobin not available"
-        })
-    
-    # 3. Creatinine Clearance Score
-    egfr_list = raw_data.get('EGFR', [])
-    egfr_obs = egfr_list[0] if egfr_list else {}
-    creatinine_list = raw_data.get('CREATININE', [])
-    creatinine_obs = creatinine_list[0] if creatinine_list else {}
-    
-    egfr_val = get_value_from_observation(egfr_obs, TARGET_UNITS['EGFR'])
-    
-    ccr_final = None
-    ccr_source = ""
-    ccr_final_date = "N/A"
-    
-    if egfr_val:
-        ccr_final = egfr_val
-        ccr_source = "Direct eGFR"
-        ccr_final_date = egfr_obs.get('effectiveDateTime', 'N/A')
-        logging.info(f"Using direct eGFR value: {ccr_final}")
-    else:
-        creatinine_val = get_value_from_observation(creatinine_obs, TARGET_UNITS['CREATININE'])
-        if creatinine_val and age and demographics.get('gender'):
-            logging.info("Direct eGFR not found, calculating from Creatinine.")
-            calculated_egfr, reason = calculate_egfr(creatinine_val, age, demographics.get('gender'))
-            if calculated_egfr:
-                ccr_final = calculated_egfr
-                ccr_source = reason
-                ccr_final_date = creatinine_obs.get('effectiveDateTime', 'N/A')
-    
-    if ccr_final:
-        ccr_score = get_score_from_table(ccr_final, ccr_table, 'ccr_range')
-        total_score += ccr_score
-        components.append({
-            "parameter": "PreciseDAPT - Creatinine Clearance",
-            "value": f"{ccr_final} mL/min/1.73m² ({ccr_source})",
-            "score": ccr_score,
-            "date": ccr_final_date,
-            "description": f"Kidney function contribution to PRECISE-DAPT score"
-        })
-    else:
-        components.append({
-            "parameter": "PreciseDAPT - Creatinine Clearance",
-            "value": "Not available",
-            "score": 0,
-            "date": "N/A",
-            "description": "Creatinine clearance not available"
-        })
-    
-    # 4. White Blood Cell Count Score
-    wbc_list = raw_data.get('WBC', [])
-    wbc_obs = wbc_list[0] if wbc_list else {}
-    wbc_val = get_value_from_observation(wbc_obs, TARGET_UNITS['WBC'])
-    
-    if wbc_val:
-        wbc_unit = TARGET_UNITS['WBC']['unit']
-        wbc_date = wbc_obs.get('effectiveDateTime', 'N/A')
-        wbc_score = get_score_from_table(wbc_val, wbc_table, 'wbc_range')
-        total_score += wbc_score
-        components.append({
-            "parameter": "PreciseDAPT - White Blood Cell Count",
-            "value": f"{wbc_val} {wbc_unit}",
-            "score": wbc_score,
-            "date": wbc_date,
-            "description": f"White blood cell count contribution to PRECISE-DAPT score"
-        })
-    else:
-        components.append({
-            "parameter": "PreciseDAPT - White Blood Cell Count",
-            "value": "Not available",
-            "score": 0,
-            "date": "N/A",
-            "description": "White blood cell count not available"
-        })
-    
-    # 5. Previous Bleeding History
-    conditions = raw_data.get('conditions', [])
-    has_bleeding, bleeding_evidence = check_bleeding_history(conditions)
-    
-    bleeding_score = 0
-    if has_bleeding:
-        bleeding_score = bleeding_config.get('score_values', {}).get('yes', 10)
-        bleeding_display = bleeding_evidence[0] + (f" (+{len(bleeding_evidence)-1} more)" if len(bleeding_evidence) > 1 else "")
-        total_score += bleeding_score
-        components.append({
-            "parameter": "PreciseDAPT - Prior Bleeding",
-            "value": bleeding_display,
-            "score": bleeding_score,
-            "date": "Historical",
-            "description": f"History of spontaneous bleeding"
-        })
-    else:
-        components.append({
-            "parameter": "PreciseDAPT - Prior Bleeding",
-            "value": "No bleeding history found",
-            "score": 0,
-            "date": "N/A",
-            "description": "No previous bleeding history"
-        })
-    
-    return components, total_score
 
 def calculate_precise_hbr_score(raw_data, demographics):
     """
@@ -1872,17 +1701,10 @@ def check_arc_hbr_factors_detailed(raw_data, medications):
 
 def calculate_risk_components(raw_data, demographics):
     """
-    Main function to calculate bleeding risk score.
-    Switch between PRECISE-DAPT and PRECISE-HBR based on configuration.
+    Main function to calculate bleeding risk score using PRECISE-HBR.
     Returns list of components and total score.
     """
-    # Use PRECISE-HBR by default, fallback to PRECISE-DAPT if needed
-    scoring_method = CDSS_CONFIG.get('scoring_logic', {}).get('scoring_method', 'PRECISE-HBR')
-    
-    if scoring_method == 'PRECISE-HBR':
-        return calculate_precise_hbr_score(raw_data, demographics)
-    else:
-        return calculate_precise_dapt_score(raw_data, demographics)
+    return calculate_precise_hbr_score(raw_data, demographics)
 
 def get_active_medications(raw_data, demographics):
     """

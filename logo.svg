@@ -33,7 +33,7 @@
     
     <!-- App Title -->
     <text x="128" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1e40af">
-        PRECISE-DAPT
+        PRECISE-HBR
     </text>
     <text x="128" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">
         Risk Calculator
