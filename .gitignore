@@ -16,33 +16,27 @@ parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # Virtual Environment
 venv/
-env/
 ENV/
-env.bak/
-venv.bak/
-.venv/
+env/
+.venv
 
-# Testing
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-nosetests.xml
-test-results/
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+!local.env.template
+!production.env.template
 
 # IDE
 .vscode/
@@ -51,124 +45,32 @@ test-results/
 *.swo
 *~
 .DS_Store
-*.sublime-project
-*.sublime-workspace
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-*.env
-local.env
-cerner_sandbox.env
-docker.env
-production.env
-
-# Secrets and credentials
-*.pem
-*.key
-*.p12
-*.pfx
-gcp-key.json
-service-account-key.json
-credentials.json
-
-# Google Cloud
-.gcloud/
-.config/gcloud/
 
 # Logs
 *.log
 logs/
 *.log.*
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Security reports
-security_reports/
-bandit-report.*
-pip-audit-report.*
-safety-report.*
+# Docker
+docker-compose.override.yml
 
-# Load testing
-load_test_results/
-locust-report.*
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
-# Session data
-flask_session/
-sessions/
-
-# Compiled files
-*.pyc
-*.pyo
-*.pyd
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Flask instance folder
-instance/
+# Sensitive data
+instance/audit/
+instance/complaints/
+instance/flask_session/
+*.jsonl
 
 # Temporary files
-tmp/
-temp/
 *.tmp
+*.bak
+*.cache
 
 # OS files
 Thumbs.db
 .DS_Store
-.Spotlight-V100
-.Trashes
-
-# Backup files
-*.bak
-*.backup
-*~
-
-# Documentation build
-_build/
-_static/
-_templates/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# PyCharm
-.idea/
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Coverage
-.coverage
-.coverage.*
-htmlcov/
-
-# Build artifacts
-*.tar.gz
-*.zip
-*.rar
-
-# CI/CD
-.github/workflows/*.log
-
-# Docker
-*.log
-docker-compose.override.yml
-
-# Editor directories and files
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
