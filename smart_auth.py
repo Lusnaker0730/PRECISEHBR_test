@@ -207,14 +207,43 @@ def callback():
         error_type = request.args.get('error')
         error_desc = request.args.get(
             'error_description', 'No description provided.')
+        
+        # Check if it's a standalone launch failure
+        is_standalone_launch_error = (
+            'launch' in error_desc.lower() or 
+            'json' in error_desc.lower() or
+            error_type == 'invalid_request'
+        )
+        
+        # Provide more helpful suggestions based on error type
+        suggestions = []
+        if is_standalone_launch_error:
+            suggestions.extend([
+                "❌ Standalone launch 可能失敗的原因：",
+                "1️⃣ 此 EHR 系統可能不支援 standalone launch（僅支援從 EHR 內部啟動）",
+                "2️⃣ Client ID 未在 EHR 系統中正確註冊 standalone launch 功能",
+                "3️⃣ Redirect URI 與註冊的不匹配",
+                "4️⃣ 請求的 scopes 超出此 EHR 系統的限制",
+                "",
+                "✅ 建議的解決方案：",
+                "• 方案一：使用「測試模式」快速測試應用程式功能（無需 OAuth 授權）",
+                "• 方案二：聯繫 EHR 系統管理員確認 standalone launch 設定",
+                "• 方案三：確認 Client ID 和 Redirect URI 設定正確",
+                "",
+                f"🔍 詳細錯誤：{error_desc}"
+            ])
+        else:
+            suggestions.extend([
+                "You must grant permission to the application to proceed.",
+                f"Error details: {error_desc}"
+            ])
+        
         return render_error_page(
             title="Authorization Failed",
             message=(
                 "The EHR authorization server returned an error: "
                 f"{error_type.replace('_', ' ').title()}"),
-            suggestions=[
-                "You must grant permission to the application to proceed.",
-                f"Error details: {error_desc}"],
+            suggestions=suggestions,
             status_code=400)
     if 'code' in request.args:
         return render_template('callback.html')

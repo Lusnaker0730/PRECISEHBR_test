@@ -9,8 +9,7 @@ from fhir_data_service import (
     get_fhir_data,
     calculate_risk_components,
     get_patient_demographics,
-    get_precise_hbr_display_info,
-    CDSS_CONFIG
+    get_precise_hbr_display_info
 )
 
 views_bp = Blueprint('views', __name__)

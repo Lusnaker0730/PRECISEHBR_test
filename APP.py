@@ -303,99 +303,8 @@ def export_ccd_api():
         app.logger.error(f"Error generating CCD: {str(e)}", exc_info=True)
         return jsonify({'error': 'Failed to generate CCD document.', 'details': str(e)}), 500
 
-@app.route('/api/exchange-code', methods=['POST'])
-def exchange_code():
-    """API to exchange authorization code for an access token."""
-    try:
-        data = request.get_json()
-        app.logger.info(f"Exchange code request data: {data}")
-        code = data.get('code')
-        if not code:
-            app.logger.error("Authorization code is missing from request")
-            return jsonify({"error": "Authorization code is missing."}), 400
-        launch_params = session.get('launch_params')
-        app.logger.info(f"Launch params from session: {launch_params}")
-        if not launch_params:
-            app.logger.error("Launch context not found in session")
-            return jsonify({"error": "Launch context not found in session."}), 400
-        token_url = launch_params['token_url']
-        code_verifier = launch_params['code_verifier']
-        token_params = {
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': REDIRECT_URI,
-            'client_id': CLIENT_ID,
-            'code_verifier': code_verifier
-        }
-        headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
-        if CLIENT_SECRET:
-            auth_str = f"{CLIENT_ID}:{CLIENT_SECRET}"
-            auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
-            headers['Authorization'] = f"Basic {auth_b64}"
-            token_params.pop('client_id', None)
-        response = requests.post(token_url, data=token_params, headers=headers, timeout=15)
-        response.raise_for_status()
-        token_response = response.json()
-        app.logger.info(f"Received token response: {token_response}")
-        # --- DEBUG: Log the exact scopes granted by the EHR ---
-        granted_scopes = token_response.get('scope', 'No scopes returned from EHR')
-        app.logger.critical(f"Granted scopes from EHR: {granted_scopes}")
-        # --- END DEBUG ---
-        session['fhir_data'] = {
-            'token': token_response.get('access_token'),
-            'patient': token_response.get('patient'),
-            'server': launch_params.get('iss'),
-            'client_id': CLIENT_ID,
-            'token_type': token_response.get('token_type', 'Bearer'),
-            'expires_in': token_response.get('expires_in'),
-            'scope': token_response.get('scope'),
-            'refresh_token': token_response.get('refresh_token')
-        }
-        if 'patient' in token_response:
-            session['patient_id'] = token_response['patient']
-        
-        # ONC Compliance: Audit successful authentication
-        log_user_authentication(
-            user_id=session.get('session_id', 'unknown'),
-            outcome='success',
-            details={
-                'patient_id': token_response.get('patient'),
-                'scope': token_response.get('scope'),
-                'authentication_method': 'SMART_on_FHIR_OAuth2'
-            }
-        )
-        
-        return jsonify({"status": "ok", "redirect_url": url_for('main_page')})
-    except requests.exceptions.HTTPError as e:
-        app.logger.error(f"Token exchange failed: {e.response.status_code} {e.response.text}")
-        
-        # ONC Compliance: Audit failed authentication
-        log_user_authentication(
-            user_id=session.get('session_id', 'unknown'),
-            outcome='failure',
-            details={
-                'error': 'token_exchange_failed',
-                'status_code': e.response.status_code,
-                'authentication_method': 'SMART_on_FHIR_OAuth2'
-            }
-        )
-        
-        return jsonify({"error": "Failed to exchange code for token.", "details": e.response.text}), e.response.status_code
-    except Exception as e:
-        app.logger.error(f"Unexpected error during token exchange: {e}", exc_info=True)
-        
-        # ONC Compliance: Audit failed authentication
-        log_user_authentication(
-            user_id=session.get('session_id', 'unknown'),
-            outcome='failure',
-            details={
-                'error': 'unexpected_error',
-                'error_message': str(e),
-                'authentication_method': 'SMART_on_FHIR_OAuth2'
-            }
-        )
-        
-        return jsonify({"error": "An internal server error occurred."}), 500
+# Token exchange is now handled by smart_auth.py blueprint
+# See smart_auth.py @auth_bp.route('/api/exchange-code', methods=['POST'])
 
 # --- Frontend Routes ---
 
@@ -571,7 +480,7 @@ csrf = CSRFProtect()
 csrf.init_app(app)
 
 # Exempt specific routes from CSRF protection
-csrf.exempt(exchange_code)
+# exchange_code is now handled by auth_bp which is exempted below
 csrf.exempt(calculate_risk_api)
 csrf.exempt(export_ccd_api)  # Exempt CCD export API
 csrf.exempt(tradeoff_bp) # Exempt the entire blueprint

@@ -27,12 +27,34 @@
                     <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Suggested Steps</h5>
                 </div>
                 <div class="card-body">
-                    <ul>
+                    <ul class="mb-0">
                         {% for suggestion in error_info.suggestions %}
-                        <li>{{ suggestion }}</li>
+                        <li style="white-space: pre-wrap;">{{ suggestion }}</li>
                         {% endfor %}
                     </ul>
                 </div>
+            </div>
+            {% endif %}
+
+            <!-- Check if this is a standalone launch error to show test mode option -->
+            {% set is_launch_error = error_info.suggestions and 
+                                     (error_info.suggestions | join(' ') | lower).find('standalone launch') != -1 %}
+            
+            {% if is_launch_error %}
+            <!-- Prominent Test Mode Option -->
+            <div class="alert alert-success mt-4" role="alert">
+                <h5 class="alert-heading"><i class="fas fa-flask"></i> 快速測試方案</h5>
+                <p class="mb-3">如果您只是想測試應用程式功能，可以使用測試模式，無需完整的 OAuth 授權流程。</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('views.test_patients') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-user-injured"></i> 進入測試模式 - 選擇測試患者
+                    </a>
+                </div>
+                <hr class="my-3">
+                <p class="small mb-0">
+                    <strong>測試模式說明：</strong>使用公開的 FHIR 測試伺服器（如 HAPI FHIR Server）載入測試患者資料，
+                    讓您無需設定 OAuth 即可體驗完整功能。
+                </p>
             </div>
             {% endif %}
 
