@@ -239,6 +239,14 @@ def demo_patient():
     
     # Redirect directly to the main calculation page
     return redirect(url_for('views.main_page'))
+
+
+@views_bp.route('/test-patients-list')
+def test_patients_list():
+    """
+    Fetch and display a paginated list of patients (pool of 50).
+    Shows 10 patients per page with complete error handling.
+    """
     # Security Check
     if check_production_access():
         return render_template('error.html', error_info={
@@ -319,10 +327,3 @@ def demo_patient():
                          patients=patients, 
                          fhir_server=fhir_server,
                          error=error)
-
-
-@views_bp.route('/test-patients-list')
-def test_patients_list():
-    """
-    Fetch and display a paginated list of patients (pool of 50).
-    """
