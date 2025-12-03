@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime
 from functools import wraps
 import jwt
@@ -130,14 +131,35 @@ def health_check():
     return jsonify({"status": "ok"}), 200
 
 
+
+def check_production_access():
+    """Check if we are in production environment and deny access to test routes."""
+    is_production = (
+        os.environ.get('FLASK_ENV') == 'production' or 
+        os.environ.get('PRODUCTION') == 'true' or
+        os.environ.get('GAE_ENV') == 'standard'
+    )
+    if is_production:
+        logging.warning("Security: Attempted access to test route in production.")
+        return True
+    return False
+
+
 @views_bp.route('/test-mode')
 def test_mode():
     """
     Development/Test mode - Direct access without OAuth for testing.
     WARNING: Only use this in development environments!
     """
+    # Security Check
+    if check_production_access():
+        return render_template('error.html', error_info={
+            'title': "Access Denied", 
+            'message': "Test mode is not available in production environment."
+        }), 403
+
     # Allow custom FHIR server from URL parameter, or use default
-    test_fhir_server = request.args.get('server', 'https://launch.smarthealthit.org/v/r4/fhir')
+    test_fhir_server = request.args.get('server', 'http://10.29.99.18:9091/fhir')
     
     # Allow custom patient ID from URL parameter, or use default
     test_patient_id = request.args.get('patient_id', 'smart-1288992')
@@ -163,22 +185,81 @@ def test_mode():
 @views_bp.route('/test-patients')
 def test_patients():
     """
-    Fetch and display a list of patients from a FHIR server for testing.
+    Display a form to input Patient ID for the internal FHIR server.
     """
-    # Get FHIR server from query parameter or use default
-    fhir_server = request.args.get('server', 'https://launch.smarthealthit.org/v/r4/fhir')
+    # Security Check
+    if check_production_access():
+        return render_template('error.html', error_info={
+            'title': "Access Denied", 
+            'message': "Test page is not available in production environment."
+        }), 403
+
+    # Default to the internal server
+    default_server = 'http://10.29.99.18:9091/fhir'
+    fhir_server = request.args.get('server', default_server)
+    
+    # We no longer fetch the patient list as requested, just show the form
+    return render_template('test_patients.html', 
+                         patients=[], 
+                         fhir_server=fhir_server,
+                         error=None)
+
+
+@views_bp.route('/demo-patient')
+def demo_patient():
+    """
+    Quick demo: Directly launch with a specific internal patient ID.
+    Target: Patient ID 87902 on internal server.
+    """
+    # Security Check
+    if check_production_access():
+        return render_template('error.html', error_info={
+            'title': "Access Denied", 
+            'message': "Demo mode is not available in production environment."
+        }), 403
+
+    # Configuration
+    target_server = 'http://10.29.99.18:9091/fhir'
+    target_patient_id = '87902'
+
+    # Create a mock session
+    session['fhir_data'] = {
+        'token': 'demo-mode-no-auth',
+        'patient': target_patient_id,
+        'server': target_server,
+        'client_id': 'demo-mode',
+        'token_type': 'Bearer',
+        'expires_in': 3600,
+        'scope': 'patient/*.read',
+        'test_mode': True
+    }
+    session['patient_id'] = target_patient_id
+    
+    logging.info(f"Demo mode activated - Server: {target_server}, Patient: {target_patient_id}")
+    
+    # Redirect directly to the main calculation page
+    return redirect(url_for('views.main_page'))
+    # Security Check
+    if check_production_access():
+        return render_template('error.html', error_info={
+            'title': "Access Denied", 
+            'message': "Test page is not available in production environment."
+        }), 403
+
+    # Default to the internal server
+    default_server = 'http://10.29.99.18:9091/fhir'
+    fhir_server = request.args.get('server', default_server)
     
     patients = []
     error = None
     
     try:
-        # Fetch patients from FHIR server
-        # Note: Some servers may require authentication, but SMART Health IT allows public access to some resources
+        # Fetch 50 patients from FHIR server
         response = requests.get(
             f"{fhir_server}/Patient",
-            params={'_count': 20},  # Limit to 20 patients
+            params={'_count': 50}, 
             headers={'Accept': 'application/fhir+json'},
-            timeout=30  # Increased timeout for slower servers
+            timeout=10
         )
         
         if response.status_code == 200:
@@ -195,7 +276,6 @@ def test_patients():
                         names = patient.get('name', [])
                         if names and len(names) > 0:
                             name_obj = names[0]
-                            # Try text field first (for Taiwan FHIR format)
                             if name_obj.get('text'):
                                 full_name = name_obj.get('text')
                             else:
@@ -217,30 +297,32 @@ def test_patients():
                             'description': f'{gender.capitalize() if gender else "Unknown"} patient'
                         })
             else:
-                error = "No patients found in the response"
+                # No entries found
+                pass
         else:
             error = f"Failed to fetch patients: HTTP {response.status_code}"
             
+    except requests.exceptions.ConnectTimeout:
+        error = "連線逾時：無法連接到測試伺服器。請確認您已連接到內部網路 (VPN) 或伺服器是否正常運作。"
+        logging.warning(f"Connection timeout fetching patients from {fhir_server}")
+    except requests.exceptions.ConnectionError:
+        error = "連線失敗：無法建立連線。請檢查伺服器位址是否正確或防火牆設定。"
+        logging.warning(f"Connection error fetching patients from {fhir_server}")
     except requests.exceptions.RequestException as e:
-        error = f"Error connecting to FHIR server: {str(e)}"
+        error = f"連線錯誤：{str(e)}"
         logging.error(f"Error fetching patients from {fhir_server}: {e}")
     except Exception as e:
-        error = f"Error processing patient data: {str(e)}"
+        error = f"處理數據時發生錯誤：{str(e)}"
         logging.error(f"Error processing patients: {e}", exc_info=True)
     
-    # If no patients were found or there was an error, provide some default test patients
-    if not patients:
-        patients = [
-            {
-                'id': 'smart-1288992',
-                'name': 'Amy V. Shaw',
-                'gender': 'Female',
-                'birthDate': '2007-03-20',
-                'description': 'Default test patient (fallback)'
-            }
-        ]
-    
-    return render_template('test_patients.html', 
+    return render_template('test_patients_list.html', 
                          patients=patients, 
                          fhir_server=fhir_server,
                          error=error)
+
+
+@views_bp.route('/test-patients-list')
+def test_patients_list():
+    """
+    Fetch and display a paginated list of patients (pool of 50).
+    """

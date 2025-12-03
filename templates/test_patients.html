@@ -11,21 +11,11 @@
         padding: 1rem;
         margin-bottom: 2rem;
     }
-    .patient-card {
-        border: 1px solid #dee2e6;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        transition: all 0.2s;
-    }
-    .patient-card:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
-        border-color: #0d6efd;
-    }
     .direct-input-card {
         background: linear-gradient(135deg, #f8fff9 0%, #e8f5e9 100%);
         border: 2px solid #28a745;
         box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+        padding: 2rem;
     }
     .direct-input-card:hover {
         box-shadow: 0 4px 12px rgba(40, 167, 69, 0.25);
@@ -33,6 +23,7 @@
     .patient-id-input {
         font-family: 'Courier New', monospace;
         font-weight: 500;
+        font-size: 1.2rem;
     }
 </style>
 
@@ -40,47 +31,22 @@
     <div class="test-warning">
         <h5>⚠️ 開發/測試模式</h5>
         <p class="mb-0">
-            此頁面僅供開發和測試使用。這些是從 FHIR 服務器實時獲取的患者數據。
+            此頁面僅供開發和測試使用。
             <strong>請勿在生產環境中使用此功能。</strong>
         </p>
     </div>
 
-    <h2 class="mb-4">測試患者列表</h2>
+    <h2 class="mb-4">內部測試連接</h2>
     
-    <!-- Server Selection -->
+    <!-- Server Info -->
     <div class="card mb-4">
         <div class="card-body">
-            <h6 class="card-title">選擇 FHIR 服務器</h6>
-            
-            <!-- Preset Server Buttons -->
-            <div class="mb-3">
-                <div class="btn-group flex-wrap" role="group">
-                    <a href="?server=https://launch.smarthealthit.org/v/r4/fhir" class="btn btn-sm btn-outline-primary">
-                        SMART Health IT
-                    </a>
-                    <a href="?server=https://r4.smarthealthit.org" class="btn btn-sm btn-outline-primary">
-                        Logica Sandbox
-                    </a>
-                    <a href="?server=https://hapi.fhir.org/baseR4" class="btn btn-sm btn-outline-primary">
-                        HAPI FHIR
-                    </a>
-                </div>
-                <small class="text-muted d-block mt-2">⚡ 點擊快速切換服務器</small>
-            </div>
-            
-            <!-- Custom Server Input -->
-            <form method="GET" class="row g-3">
-                <div class="col-md-9">
-                    <input type="url" class="form-control" name="server" 
-                           value="{{ fhir_server }}" 
-                           placeholder="https://launch.smarthealthit.org/v/r4/fhir">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">載入患者</button>
-                </div>
-            </form>
+            <h6 class="card-title">目標 FHIR 服務器</h6>
+            <p class="card-text">
+                <span class="badge bg-primary p-2" style="font-size: 1em;">{{ fhir_server }}</span>
+            </p>
             <small class="text-muted">
-                當前服務器: <code>{{ fhir_server }}</code>
+                此頁面已配置為連接到上述內部測試服務器。
             </small>
         </div>
     </div>
@@ -88,49 +54,39 @@
     <!-- Direct Patient ID Input -->
     <div class="card mb-4 direct-input-card">
         <div class="card-body">
-            <h6 class="card-title text-success mb-2">
-                🔍 直接輸入 Patient ID
-            </h6>
-            <p class="text-muted small mb-3">
-                如果您知道患者的 ID，可以直接輸入以快速載入該患者的數據
+            <h4 class="card-title text-success mb-3">
+                🔍 輸入 Patient ID 進行測試
+            </h4>
+            <p class="text-muted mb-4">
+                請輸入位於 <code>{{ fhir_server }}</code> 上的患者 ID 以啟動應用。
             </p>
             
             <form method="GET" action="{{ url_for('views.test_mode') }}" class="row g-3" id="patientIdForm">
                 <input type="hidden" name="server" value="{{ fhir_server }}">
                 <div class="col-md-9">
-                    <div class="input-group">
+                    <div class="input-group input-group-lg">
                         <span class="input-group-text">Patient ID</span>
                         <input type="text" 
                                class="form-control patient-id-input" 
                                name="patient_id" 
                                id="patientIdInput"
-                               placeholder="例如: smart-1288992, 47051312"
-                               required>
+                               placeholder="e.g. 12345"
+                               required
+                               autofocus>
                     </div>
-                    <small class="text-muted">
-                        將使用當前服務器: <code>{{ fhir_server }}</code>
-                    </small>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-success w-100">
-                        🚀 載入患者
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                        🚀 啟動測試
                     </button>
                 </div>
             </form>
             
             <!-- Quick Patient ID Examples -->
             <div class="mt-3 pt-2 border-top">
-                <small class="text-muted d-block mb-2"><strong>常用測試 Patient ID:</strong></small>
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillPatientId('smart-1288992')">
-                        smart-1288992
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillPatientId('smart-1482713')">
-                        smart-1482713
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillPatientId('smart-1551992')">
-                        smart-1551992
-                    </button>
+                <small class="text-muted d-block mb-2"><strong>最近使用 / 常用 ID:</strong></small>
+                <div class="d-flex flex-wrap gap-2" id="recentIds">
+                    <!-- Will be populated by JS -->
                 </div>
             </div>
         </div>
@@ -139,86 +95,75 @@
     <script>
         function fillPatientId(patientId) {
             document.getElementById('patientIdInput').value = patientId;
-            document.getElementById('patientIdInput').focus();
+            document.getElementById('patientIdForm').submit();
         }
         
-        // Remember last used patient ID
+        // Manage Recent IDs
+        const RECENT_IDS_KEY = 'recentPatientIds';
+        
+        function loadRecentIds() {
+            const recentIds = JSON.parse(localStorage.getItem(RECENT_IDS_KEY) || '[]');
+            const container = document.getElementById('recentIds');
+            container.innerHTML = '';
+            
+            if (recentIds.length === 0) {
+                container.innerHTML = '<span class="text-muted small">尚無最近使用記錄</span>';
+                return;
+            }
+            
+            recentIds.forEach(id => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-outline-success';
+                btn.textContent = id;
+                btn.onclick = () => fillPatientId(id);
+                container.appendChild(btn);
+            });
+            
+            // Add clear button
+            if (recentIds.length > 0) {
+                const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'btn btn-sm btn-link text-muted';
+                clearBtn.textContent = '清除記錄';
+                clearBtn.onclick = () => {
+                    localStorage.removeItem(RECENT_IDS_KEY);
+                    loadRecentIds();
+                };
+                container.appendChild(clearBtn);
+            }
+        }
+        
         document.getElementById('patientIdForm').addEventListener('submit', function() {
-            const patientId = document.getElementById('patientIdInput').value;
-            localStorage.setItem('lastPatientId', patientId);
+            const patientId = document.getElementById('patientIdInput').value.trim();
+            if (!patientId) return;
+            
+            let recentIds = JSON.parse(localStorage.getItem(RECENT_IDS_KEY) || '[]');
+            // Remove if exists (to move to top)
+            recentIds = recentIds.filter(id => id !== patientId);
+            // Add to front
+            recentIds.unshift(patientId);
+            // Limit to 5
+            recentIds = recentIds.slice(0, 5);
+            
+            localStorage.setItem(RECENT_IDS_KEY, JSON.stringify(recentIds));
         });
         
-        // Restore last used patient ID on page load
-        window.addEventListener('load', function() {
-            const lastPatientId = localStorage.getItem('lastPatientId');
-            if (lastPatientId) {
-                document.getElementById('patientIdInput').value = lastPatientId;
-            }
-        });
+        // Load on start
+        window.addEventListener('load', loadRecentIds);
     </script>
 
-    {% if error %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <strong>⚠️ 警告：</strong> {{ error }}
-        <br><small>顯示默認的備用測試患者。</small>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endif %}
-
-    <p class="text-muted mb-4">
-        選擇一個測試患者來直接測試應用功能（無需 OAuth 授權）<br>
-        <small>共找到 <strong>{{ patients|length }}</strong> 位患者</small>
-    </p>
-
-    <div class="row">
-        {% for patient in patients %}
-        <div class="col-md-6 mb-3">
-            <div class="patient-card">
-                <h5>{{ patient.name }}</h5>
-                <p class="text-muted mb-2">
-                    <strong>Patient ID:</strong> <code>{{ patient.id }}</code><br>
-                    <strong>Gender:</strong> {{ patient.gender }}<br>
-                    <strong>Birth Date:</strong> {{ patient.birthDate }}<br>
-                    <small>{{ patient.description }}</small>
-                </p>
-                <a href="{{ url_for('views.test_mode') }}?patient_id={{ patient.id }}&server={{ fhir_server }}" 
-                   class="btn btn-primary">
-                    使用此患者測試
-                </a>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <hr class="my-4">
-
-    <div class="card">
+    <div class="card mt-4">
         <div class="card-body">
-            <h5 class="card-title">其他測試選項</h5>
+            <h5 class="card-title">其他選項</h5>
             <div class="list-group list-group-flush">
-                <a href="{{ url_for('views.test_mode') }}" class="list-group-item list-group-item-action">
-                    <strong>快速測試模式</strong><br>
-                    <small>使用默認測試患者 (Amy V. Shaw) 直接進入主應用</small>
-                </a>
                 <a href="/standalone" class="list-group-item list-group-item-action">
-                    <strong>Standalone Launch（完整 OAuth）</strong><br>
-                    <small>使用完整的 SMART on FHIR 授權流程</small>
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <strong>Standalone Launch</strong>
+                    <span class="text-muted ms-2">- 使用標準 OAuth 流程登入</span>
                 </a>
             </div>
         </div>
-    </div>
-
-    <div class="mt-4">
-        <h6>技術說明</h6>
-        <ul class="small text-muted">
-            <li><strong>直接輸入 Patient ID:</strong> 如果您知道特定患者的 ID，可以直接輸入以快速載入數據，無需從列表中選擇</li>
-            <li><strong>患者列表:</strong> 從當前 FHIR 服務器實時獲取最多 20 位患者</li>
-            <li><strong>支持的服務器:</strong> SMART Health IT、Logica Sandbox、HAPI FHIR 或任何公開的 FHIR R4 服務器</li>
-            <li><strong>測試模式:</strong> 會創建一個模擬 session（token: <code>test-mode-no-auth</code>），無需實際的 OAuth token</li>
-            <li><strong>記憶功能:</strong> 上次使用的 Patient ID 會自動保存到瀏覽器本地存儲</li>
-            <li><strong>安全提示:</strong> 在生產環境中，請務必禁用此功能或添加適當的訪問控制</li>
-        </ul>
     </div>
 </div>
 {% endblock %}
-
