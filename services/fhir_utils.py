@@ -34,9 +34,21 @@ def get_patient_demographics(patient_resource):
         if name_data.get("text"):
             demographics["name"] = name_data.get("text")
         else:
-            demographics["name"] = " ".join(
-                name_data.get("given", []) + [name_data.get("family", "")]
-            ).strip()
+            # Handle both given and family as potentially being lists or strings
+            given_names = name_data.get("given", [])
+            family_name = name_data.get("family", "")
+            
+            # Ensure given_names is a list
+            if isinstance(given_names, str):
+                given_names = [given_names]
+            
+            # Ensure family_name is a string (flatten if it's a list)
+            if isinstance(family_name, list):
+                family_name = " ".join(family_name) if family_name else ""
+            
+            # Combine all name parts
+            name_parts = list(given_names) + ([family_name] if family_name else [])
+            demographics["name"] = " ".join(name_parts).strip()
 
     # Gender
     demographics["gender"] = patient_resource.get("gender")
